@@ -14,3 +14,5 @@ __pycache__/
 *.tsbuildinfo
 .DS_Store
 .cache/
+playwright-report/
+test-results/

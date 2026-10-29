@@ -30,6 +30,9 @@ jobs:
         working-directory: backend
       - run: uv run --frozen pytest
         working-directory: backend
+      - run: uv run --frozen python scripts/export_openapi.py
+        working-directory: backend
+      - run: git diff --exit-code -- frontend/openapi.json
   database:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -72,6 +75,8 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - run: npm run contracts
+      - run: git diff --exit-code -- src/shared/contracts/api.generated.ts
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
@@ -92,6 +97,17 @@ jobs:
           curl --fail http://127.0.0.1:3000/
           curl --fail http://127.0.0.1:8000/health/ready
           curl --fail http://127.0.0.1:3000/health/ready
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run test:e2e
+        working-directory: frontend
       - name: Stop stack
         if: always()
         env:
