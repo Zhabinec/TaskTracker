@@ -32,9 +32,13 @@ class SqlAuthUnitOfWork:
         await self.session.__aexit__(exc_type, exc, traceback)
 
     async def password_record(self, email: str) -> PasswordRecord | None:
-        user = await self.session.scalar(
-            select(UserModel).where(UserModel.email_normalized == email)
-        )
+        user = (
+            await self.session.execute(
+                select(UserModel.id, UserModel.email_normalized, UserModel.password_hash)
+                .where(UserModel.email_normalized == email)
+                .limit(1)
+            )
+        ).one_or_none()
         return (
             PasswordRecord(Profile(user.id, user.email_normalized), user.password_hash)
             if user
@@ -64,7 +68,7 @@ class SqlAuthUnitOfWork:
 
     async def resolve(self, token_hash: str) -> Profile | None:
         statement = (
-            select(UserModel)
+            select(UserModel.id, UserModel.email_normalized)
             .join(SessionModel, SessionModel.user_id == UserModel.id)
             .where(
                 SessionModel.token_hash == token_hash,
@@ -72,7 +76,7 @@ class SqlAuthUnitOfWork:
                 SessionModel.expires_at > func.now(),
             )
         )
-        user = await self.session.scalar(statement)
+        user = (await self.session.execute(statement.limit(1))).one_or_none()
         return Profile(user.id, user.email_normalized) if user else None
 
     async def revoke(self, token_hash: str) -> None:

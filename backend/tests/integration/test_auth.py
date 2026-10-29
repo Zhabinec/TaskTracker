@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
-from sqlalchemy import func, select, update
+from sqlalchemy import Connection, Engine, event, func, select, update
 
 from tasktracker.application.auth.contracts import AuthError, Profile
 from tasktracker.bootstrap import create_app
@@ -19,6 +19,40 @@ from tests.integration.support import migrate
 
 pytestmark = [pytest.mark.integration, pytest.mark.anyio]
 PASSWORD = "a long password for integration tests"
+
+
+async def test_profile_query_does_not_load_password_or_full_entities(client: AsyncClient) -> None:
+    grant = (
+        await client.post(
+            "/api/v1/auth/register", json={"email": "projection@example.com", "password": PASSWORD}
+        )
+    ).json()
+    statements: list[str] = []
+
+    def capture(
+        connection: Connection,
+        cursor: object,
+        statement: str,
+        parameters: object,
+        context: object,
+        executemany: bool,
+    ) -> None:
+        if statement.lstrip().startswith("SELECT"):
+            statements.append(statement)
+
+    event.listen(Engine, "before_cursor_execute", capture)
+    try:
+        response = await client.get(
+            "/api/v1/auth/me", headers={"Authorization": f"Bearer {grant['session_token']}"}
+        )
+        assert response.status_code == 200
+    finally:
+        event.remove(Engine, "before_cursor_execute", capture)
+    assert len(statements) == 1
+    assert "users.password_hash" not in statements[0]
+    assert "users.created_at" not in statements[0]
+    assert "users.id" in statements[0] and "users.email_normalized" in statements[0]
+    assert "LIMIT" in statements[0]
 
 
 @pytest.fixture
