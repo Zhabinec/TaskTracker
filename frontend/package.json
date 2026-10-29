@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
+    "prebuild": "node scripts/prepare-pwa.mjs",
     "start": "next start --hostname 0.0.0.0",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "next typegen && tsc --noEmit",
@@ -30,7 +31,9 @@
     "@types/react-dom": "19.3.0",
     "eslint": "10.13.0",
     "eslint-plugin-react-hooks": "7.1.1",
+    "fake-indexeddb": "6.2.6",
     "openapi-typescript": "7.13.0",
+    "sharp": "0.35.5",
     "typescript": "5.9.3",
     "typescript-eslint": "8.72.1",
     "vitest": "5.0.5"

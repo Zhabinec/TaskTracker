@@ -16,3 +16,6 @@ __pycache__/
 .cache/
 playwright-report/
 test-results/
+frontend/public/build-info.json
+frontend/public/icon-192.png
+frontend/public/icon-512.png
