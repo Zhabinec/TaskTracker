@@ -50,6 +50,14 @@
 .taskMeta span { background: #f0e7f7; padding: 3px 7px; border-radius: 6px; }
 .delete { margin-left: auto; border: 0; background: transparent; color: #a494ad; padding: 2px 5px; font-size: 17px; }
 .taskContent { min-width: 0; flex: 1; }
+.editTask { display: block; text-align: left; padding: 0; border: 0; border-radius: 4px; background: transparent; color: inherit; font-weight: 500; min-height: 44px; width: 100%; }
+.editTask:hover:not(:disabled) { color: var(--accent); transform: none; }
+.editor { border-top: 0 !important; padding-top: 0 !important; }
+.editorActions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.editorActions button { min-height: 44px; padding: 10px 16px; font-size: 12px; }
+.taskStatus, .delete { min-width: 44px; min-height: 44px; }
+.taskStatus { border-radius: 14px; }
+.delete { margin-right: -8px; }
 .taskForm { display: grid; gap: 10px; border-top: 1px solid #ffffffb0; padding-top: 20px; }
 .taskForm label { font-size: 11px; color: var(--muted); }
 .taskForm input { font-size: 13px; padding: 12px 14px; }

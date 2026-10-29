@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { changeTask, createProject, createTask, listProjects, listTasks, profile, saveProfile } from "../src/features/local/store";
+import { editTask, changeTask, createProject, createTask, listProjects, listTasks, profile, saveProfile } from "../src/features/local/store";
 
 beforeAll(() => {
   vi.stubGlobal("window", Object.assign(new EventTarget(), { indexedDB }));
@@ -61,4 +61,19 @@ describe("local IndexedDB transactions", () => {
     const limited = await listProjects(1);
     expect(limited.items).toHaveLength(1); expect(limited.more).toBe(true);
   });
+});
+
+
+it("edits content without changing status or counters and rejects stale drafts", async () => {
+  const project = await createProject("Editing");
+  await createTask(project.id, "Original", "2026-12-01");
+  await changeTask((await listTasks(project.id, "all")).items[0], "Done");
+  const original = (await listTasks(project.id, "all")).items[0];
+  await editTask(original, "  Updated  ", "");
+  const updated = (await listTasks(project.id, "all")).items[0];
+  expect(updated).toMatchObject({ title: "Updated", dueDate: null, status: "Done", completedAt: original.completedAt, version: original.version + 1 });
+  await expect(editTask(original, "Stale", "")).rejects.toThrow("another tab");
+  await expect(editTask(updated, "Invalid", "2026-02-30")).rejects.toThrow("due date");
+  expect((await listTasks(project.id, "all")).items[0]).toEqual(updated);
+  expect((await listProjects()).items.find(value => value.id === project.id)).toMatchObject({ taskCount: 1, doneCount: 1 });
 });

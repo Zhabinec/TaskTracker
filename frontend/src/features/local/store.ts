@@ -99,6 +99,19 @@ export async function createTask(projectId: string, title: string, dueDate: stri
   } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
   await done; changed();
 }
+export async function editTask(task: Task, title: string, dueDate: string): Promise<void> {
+  const normalized = validName(title, 200); const date = validDate(dueDate);
+  const db = await database(); const tx = db.transaction(["tasks", "projects"], "readwrite"); const done = committed(tx);
+  try {
+    const tasks = tx.objectStore("tasks"); const current: Task | undefined = await result(tasks.get(task.id));
+    if (!current || current.version !== task.version) throw new Error("This task changed in another tab. Cancel and reopen it to retry.");
+    const projects = tx.objectStore("projects"); const project: Project | undefined = await result(projects.get(current.projectId));
+    if (!project) throw new Error("Project not found.");
+    tasks.put({ ...current, title: normalized, dueDate: date, version: current.version + 1 });
+    projects.put({ ...project, updatedAt: new Date().toISOString() });
+  } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
+  await done; changed();
+}
 export async function changeTask(task: Task, status: TaskStatus | "delete"): Promise<void> {
   const db = await database(); const tx = db.transaction(["tasks", "projects"], "readwrite"); const done = committed(tx);
   try {

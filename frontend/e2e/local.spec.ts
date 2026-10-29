@@ -110,3 +110,61 @@ test("a service worker update keeps the local workspace intact", async ({ page }
   await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Update", exact: true }).click()]);
   await expect(page.getByRole("heading", { name: "Project survives an update" })).toBeVisible();
 });
+
+
+test("edit a task offline, cancel with Escape and retain keyboard focus", async ({ page, context }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Get started" }).click();
+  await page.getByLabel("New project", { exact: true }).fill("Editing");
+  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByLabel("Task", { exact: true }).fill("Original task");
+  await page.getByRole("button", { name: "Add task" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  await context.setOffline(true);
+  await page.getByRole("button", { name: "Edit task: Original task", exact: true }).click();
+  const editor = page.getByRole("form", { name: "Edit task", exact: true });
+  await expect(editor.getByLabel("Task", { exact: true })).toBeFocused();
+  await editor.getByLabel("Task", { exact: true }).fill("Discard this draft");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Edit task: Original task", exact: true })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await editor.getByLabel("Task", { exact: true }).fill("Updated task");
+  await editor.getByLabel("Due date").fill("2026-12-21");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/task-editor-mobile.png", fullPage: true });
+  await editor.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Edit task: Updated task", exact: true })).toBeFocused();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Edit task: Updated task", exact: true })).toBeVisible();
+  await expect(page.locator('time[datetime="2026-12-21"]')).toBeVisible();
+  await page.setViewportSize({ width: 812, height: 375 });
+  await page.getByRole("button", { name: "Edit task: Updated task", exact: true }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+
+test("another tab cannot silently overwrite an open task draft", async ({ page, context }) => {
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Get started" }).click();
+  await page.getByLabel("New project", { exact: true }).fill("Conflict");
+  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByLabel("Task", { exact: true }).fill("Shared task");
+  await page.getByRole("button", { name: "Add task" }).click();
+  const second = await context.newPage(); await second.goto("/projects");
+  await expect(second.getByRole("button", { name: "Start: Shared task", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Edit task: Shared task", exact: true }).click();
+  const editor = page.getByRole("form", { name: "Edit task", exact: true });
+  await editor.getByLabel("Task", { exact: true }).fill("My unsaved draft");
+  await second.getByRole("button", { name: "Start: Shared task", exact: true }).click();
+  await expect(second.getByRole("button", { name: "Complete: Shared task", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Complete: Shared task", exact: true })).toBeVisible();
+  await expect(editor.getByLabel("Task", { exact: true })).toHaveValue("My unsaved draft");
+  await editor.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(editor.getByRole("alert")).toContainText("another tab");
+  await expect(editor.getByLabel("Task", { exact: true })).toHaveValue("My unsaved draft");
+  await editor.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Edit task: Shared task", exact: true })).toBeFocused();
+});
