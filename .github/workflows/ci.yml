@@ -1,0 +1,71 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.14'
+      - run: python -m pip install uv==0.13.4
+      - run: uv sync --frozen
+        working-directory: backend
+      - run: uv run --frozen ruff check .
+        working-directory: backend
+      - run: uv run --frozen ruff format --check .
+        working-directory: backend
+      - run: uv run --frozen mypy
+        working-directory: backend
+      - run: uv run --frozen pytest
+        working-directory: backend
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=high
+  containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Build and smoke test local stack
+        env:
+          POSTGRES_PASSWORD: ci-ephemeral-database-password
+        run: |
+          docker compose up --build --wait --wait-timeout 180
+          curl --fail http://127.0.0.1:8000/health/live
+          curl --fail http://127.0.0.1:3000/health/live
+          curl --fail http://127.0.0.1:3000/
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/health/ready)" = 503
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/health/ready)" = 503
+      - name: Stop stack
+        if: always()
+        env:
+          POSTGRES_PASSWORD: ci-ephemeral-database-password
+        run: docker compose down --volumes
