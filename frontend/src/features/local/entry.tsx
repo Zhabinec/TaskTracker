@@ -14,12 +14,10 @@ export function LocalEntry() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Не удалось сохранить пространство."); setPending(false); }
   }
   return <form onSubmit={open} className={styles.entryForm} aria-busy={pending || !ready}>
-    <label htmlFor="display-name">Как назвать ваше пространство?</label>
-    <input id="display-name" name="name" placeholder="Например, планы Александры" value={name} onChange={event => setName(event.target.value)} maxLength={60} autoComplete="off" disabled={pending || !ready} />
-    <p className={styles.hint}>Можно оставить пустым и назвать позже.</p>
+    <label htmlFor="display-name">Название</label>
+    <input id="display-name" name="name" aria-label="Название пространства" placeholder="Моё пространство" value={name} onChange={event => setName(event.target.value)} maxLength={60} autoComplete="off" disabled={pending || !ready} />
     {error && <p role="alert" className="form-error">{error}</p>}
-    <button className="primary" disabled={pending || !ready} type="submit">{pending ? "Открываем…" : !ready ? "Подготовка…" : existing ? "Продолжить работу ↗" : "Начать без регистрации ↗"}</button>
-    <div className={styles.localNote}><span aria-hidden="true">◈</span><p><strong>Только на вашем устройстве</strong><br />Данные хранятся в этом браузере. Без почты, пароля и отправки на сервер.</p></div>
-    <p className={styles.finePrint}>Для работы без сети откройте приложение один раз онлайн. Очистка данных сайта удаляет локальные проекты.</p>
+    <button className="primary" disabled={pending || !ready} type="submit">{pending ? "Открываем…" : !ready ? "Подготовка…" : existing ? "Продолжить ↗" : "Начать ↗"}</button>
+    <details className={styles.finePrint}><summary>Данные — в этом браузере</summary><p>Очистка данных сайта удалит проекты. Для работы без сети дождитесь готовности офлайн-режима.</p></details>
   </form>;
 }
