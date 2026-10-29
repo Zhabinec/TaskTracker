@@ -8,7 +8,7 @@ export function AuthPage() {
     <section className={styles.panel} aria-labelledby="form-heading">
       <div className={`glass ${styles.card}`}>
         <div className={styles.welcomeIcon} aria-hidden="true">✦</div>
-        <h1 id="form-heading">Моё пространство</h1>
+        <h1 id="form-heading">Your space</h1>
         <LocalEntry />
       </div>
     </section>

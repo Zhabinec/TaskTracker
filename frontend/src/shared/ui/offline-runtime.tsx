@@ -12,7 +12,7 @@ export function OfflineRuntime() {
     void (async () => {
       let build = "local-v1";
       try { const response = await fetch("/build-info.json", { cache: "no-store" }); if (response.ok) build = (await response.json()).build; }
-      catch { if (navigator.serviceWorker.controller) { if (active) setStatus("Офлайн доступен"); return; } }
+      catch { if (navigator.serviceWorker.controller) { if (active) setStatus("Offline ready"); return; } }
       const registration = await navigator.serviceWorker.register(`/sw.js?build=${encodeURIComponent(build)}`, { scope: "/", updateViaCache: "none" });
       if (registration.waiting && active) setWaiting(registration);
       registration.addEventListener("updatefound", () => {
@@ -20,15 +20,15 @@ export function OfflineRuntime() {
         worker?.addEventListener("statechange", () => {
           if (worker.state === "installed" && active) {
             if (navigator.serviceWorker.controller) setWaiting(registration);
-            else setStatus("Офлайн доступен");
+            else setStatus("Offline ready");
           }
         });
       });
       await navigator.serviceWorker.ready;
-      if (active) { setStatus("Офлайн доступен"); window.dispatchEvent(new Event("tasktracker:offline-ready")); }
-    })().catch(() => { if (active) setStatus("Офлайн-загрузка недоступна"); });
+      if (active) { setStatus("Offline ready"); window.dispatchEvent(new Event("tasktracker:offline-ready")); }
+    })().catch(() => { if (active) setStatus("Offline setup unavailable"); });
     return () => { active = false; navigator.serviceWorker.removeEventListener("controllerchange", change); };
   }, []);
-  if (waiting) return <div className="glass runtime-notice" role="status">Есть обновление<button className="secondary" onClick={() => { reload.current = true; waiting.waiting?.postMessage("SKIP_WAITING"); }}>Обновить</button></div>;
-  return status ? <div className="glass runtime-notice" role="status"><span aria-hidden="true">◈</span>{status}<button className="secondary" aria-label="Скрыть уведомление" onClick={() => setStatus("")}>×</button></div> : null;
+  if (waiting) return <div className="glass runtime-notice" role="status">Update available<button className="secondary" onClick={() => { reload.current = true; waiting.waiting?.postMessage("SKIP_WAITING"); }}>Update</button></div>;
+  return status ? <div className="glass runtime-notice" role="status"><span aria-hidden="true">◈</span>{status}<button className="secondary" aria-label="Dismiss" onClick={() => setStatus("")}>×</button></div> : null;
 }

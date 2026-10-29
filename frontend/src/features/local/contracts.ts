@@ -6,7 +6,7 @@ export type TaskPage = { items: Task[]; more: boolean };
 
 export function validName(value: string, maximum: number): string {
   const name = value.trim();
-  if (!name || name.length > maximum) throw new Error(`Введите название от 1 до ${maximum} символов.`);
+  if (!name || name.length > maximum) throw new Error(`Use 1 to ${maximum} characters.`);
   return name;
 }
 
@@ -14,7 +14,7 @@ export function validDate(value: string): string | null {
   if (!value) return null;
   const date = new Date(`${value}T00:00:00Z`);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
-    throw new Error("Проверьте дату дедлайна.");
+    throw new Error("Enter a valid due date.");
   }
   return value;
 }

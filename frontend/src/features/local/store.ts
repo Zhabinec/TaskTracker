@@ -15,7 +15,7 @@ export function subscribeChanges(listener: () => void) {
 }
 function database(): Promise<IDBDatabase> {
   if (!opened) opened = new Promise((resolve, reject) => {
-    if (!window.indexedDB) { reject(new Error("Браузер не поддерживает локальное хранилище.")); return; }
+    if (!window.indexedDB) { reject(new Error("This browser does not support local storage.")); return; }
     const request = indexedDB.open("tasktracker-local", 1);
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -26,8 +26,8 @@ function database(): Promise<IDBDatabase> {
       tasks.createIndex("project", ["projectId", "createdAt", "id"]);
       tasks.createIndex("status", ["projectId", "status", "createdAt", "id"]);
     };
-    request.onerror = () => { opened = undefined; reject(new Error("Не удалось открыть хранилище. Разрешите сохранение данных для этого сайта.")); };
-    request.onblocked = () => { opened = undefined; reject(new Error("Закройте другие вкладки приложения и повторите попытку.")); };
+    request.onerror = () => { opened = undefined; reject(new Error("Storage unavailable. Allow site data and retry.")); };
+    request.onblocked = () => { opened = undefined; reject(new Error("Close other app tabs and retry.")); };
     request.onsuccess = () => {
       const db = request.result;
       db.onversionchange = () => { db.close(); opened = undefined; };
@@ -40,14 +40,14 @@ function result<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => { request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
 }
 function committed(tx: IDBTransaction): Promise<void> {
-  return new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onabort = tx.onerror = () => reject(tx.error ?? new Error("Не удалось сохранить изменения.")); });
+  return new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onabort = tx.onerror = () => reject(tx.error ?? new Error("Could not save your changes.")); });
 }
 export async function profile(): Promise<LocalProfile | undefined> {
   const db = await database();
   return result(db.transaction("profiles").objectStore("profiles").get("device"));
 }
 export async function saveProfile(name: string): Promise<void> {
-  const normalized = validName(name || "Моё пространство", 60);
+  const normalized = validName(name || "Your space", 60);
   const db = await database(); const tx = db.transaction("profiles", "readwrite"); const done = committed(tx);
   const store = tx.objectStore("profiles");
   const previous: LocalProfile | undefined = await result(store.get("device"));
@@ -92,7 +92,7 @@ export async function createTask(projectId: string, title: string, dueDate: stri
   const db = await database(); const tx = db.transaction(["tasks", "projects"], "readwrite"); const done = committed(tx);
   try {
     const projects = tx.objectStore("projects"); const project: Project | undefined = await result(projects.get(projectId));
-    if (!project) throw new Error("Проект не найден. Обновите список.");
+    if (!project) throw new Error("Project not found. Refresh the list.");
     const now = new Date().toISOString();
     tx.objectStore("tasks").add({ id: crypto.randomUUID(), projectId, title: normalized, dueDate: date, status: "Todo", createdAt: now, completedAt: null, version: 1 } satisfies Task);
     projects.put({ ...project, taskCount: project.taskCount + 1, updatedAt: now });
@@ -103,9 +103,9 @@ export async function changeTask(task: Task, status: TaskStatus | "delete"): Pro
   const db = await database(); const tx = db.transaction(["tasks", "projects"], "readwrite"); const done = committed(tx);
   try {
     const tasks = tx.objectStore("tasks"); const current: Task | undefined = await result(tasks.get(task.id));
-    if (!current || current.version !== task.version) throw new Error("Задача изменилась в другой вкладке. Список обновлён; попробуйте снова.");
+    if (!current || current.version !== task.version) throw new Error("This task changed in another tab. Please retry.");
     const projects = tx.objectStore("projects"); const project: Project | undefined = await result(projects.get(current.projectId));
-    if (!project) throw new Error("Проект не найден.");
+    if (!project) throw new Error("Project not found.");
     if (status === "delete") tasks.delete(task.id);
     else tasks.put({ ...current, status, completedAt: status === "Done" ? current.completedAt ?? new Date().toISOString() : null, version: current.version + 1 });
     projects.put({ ...project, taskCount: project.taskCount - (status === "delete" ? 1 : 0), doneCount: project.doneCount - (current.status === "Done" ? 1 : 0) + (status === "Done" ? 1 : 0), updatedAt: new Date().toISOString() });

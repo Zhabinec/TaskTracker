@@ -29,17 +29,17 @@ describe("local IndexedDB transactions", () => {
     expect(completed.completedAt).toBeTruthy();
     await changeTask(completed, "Done");
     expect((await listTasks(project.id, "Done")).items[0].completedAt).toBe(completed.completedAt);
-    await expect(createTask(project.id, "Некорректная дата", "2026-02-30")).rejects.toThrow("дату");
+    await expect(createTask(project.id, "Некорректная дата", "2026-02-30")).rejects.toThrow("due date");
     expect((await listTasks(project.id, "Todo")).items).toHaveLength(0);
     expect((await listProjects()).items.find(value => value.id === project.id)).toMatchObject({ taskCount: 1, doneCount: 1 });
-    await expect(changeTask(task, "delete")).rejects.toThrow("другой вкладке");
+    await expect(changeTask(task, "delete")).rejects.toThrow("another tab");
     const current = (await listTasks(project.id, "Done")).items[0];
     await changeTask(current, "delete");
     expect((await listProjects()).items.find(value => value.id === project.id)).toMatchObject({ taskCount: 0, doneCount: 0 });
   });
 
   it("rolls back missing projects and detects concurrent updates", async () => {
-    await expect(createTask("missing", "Задача", "")).rejects.toThrow("Проект не найден");
+    await expect(createTask("missing", "Задача", "")).rejects.toThrow("Project not found");
     expect((await listTasks("missing", "all")).items).toHaveLength(0);
     const project = await createProject("Конкуренция");
     await createTask(project.id, "Одна задача", "");

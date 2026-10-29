@@ -5,7 +5,7 @@ const pages = ["/login", "/projects"];
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    const assets = new Set(["/manifest.webmanifest", "/icon.svg", "/icon-192.png", "/icon-512.png"]);
+    const assets = new Set(["/manifest.webmanifest", "/icon.svg", "/icon-192.png", "/icon-512.png", "/fonts/jakarta-latin.woff2", "/fonts/inter-latin.woff2", "/fonts/inter-cyrillic.woff2"]);
     for (const page of pages) {
       const response = await fetch(page, { cache: "reload" });
       if (!response.ok) throw new Error("Offline shell unavailable");
@@ -44,7 +44,7 @@ self.addEventListener("fetch", event => {
     })());
     return;
   }
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icon") || url.pathname === "/manifest.webmanifest") {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/fonts/") || url.pathname.startsWith("/icon") || url.pathname === "/manifest.webmanifest") {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE);
       const cached = await cache.match(request);
