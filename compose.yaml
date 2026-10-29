@@ -16,15 +16,32 @@ services:
       timeout: 3s
       retries: 5
     restart: unless-stopped
-  api:
+  migrate:
     build: ./backend
-    environment:
+    command: ["python", "-m", "tasktracker.infrastructure.db.migrate"]
+    environment: &database_environment
       TASKTRACKER_ENVIRONMENT: production
       TASKTRACKER_PRODUCT_TIMEZONE: Europe/Moscow
+      TASKTRACKER_DB_HOST: db
+      TASKTRACKER_DB_NAME: ${POSTGRES_DB:-tasktracker}
+      TASKTRACKER_DB_USER: ${POSTGRES_USER:-tasktracker}
+      TASKTRACKER_DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    init: true
+    security_opt: ["no-new-privileges:true"]
+  api:
+    build: ./backend
+    environment: *database_environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "127.0.0.1:8000:8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=3)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=4)"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,6 +50,9 @@ services:
     security_opt: ["no-new-privileges:true"]
   frontend:
     build: ./frontend
+    depends_on:
+      api:
+        condition: service_healthy
     environment:
       FASTAPI_INTERNAL_URL: http://api:8000
     ports:

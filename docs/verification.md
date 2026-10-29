@@ -1,14 +1,14 @@
 # Проверка подготовки проекта
 
-Дата: 29 октября 2026 года. Объём: фундамент шага 1 архитектурного плана.
+Дата: 29 октября 2026 года. Объём: фундамент шага 1 и PostgreSQL/Alembic из шага 2 архитектурного плана.
 
 ## Пройдено фактически
 
 | Проверка | Результат |
 |---|---|
-| Backend Ruff lint / format | успешно, 8 исходных файлов |
+| Backend Ruff lint / format | успешно, 15 исходных файлов |
 | Backend mypy strict | успешно |
-| Backend pytest | 3 теста, успешно, без предупреждений |
+| Backend pytest | 14 тестов (6 быстрых + 8 PostgreSQL), успешно, без предупреждений |
 | Frontend ESLint 10 | успешно, без предупреждений |
 | Frontend TypeScript | успешно |
 | Frontend Vitest | 3 теста, успешно |
@@ -17,16 +17,20 @@
 | Frontend чистая установка в Docker | `npm ci`, успешно, 0 найденных уязвимостей |
 | npm audit runtime dependencies | 0 найденных уязвимостей на момент проверки |
 | Docker Compose config | успешно |
-| Полный временный Compose-стенд | frontend, API и PostgreSQL healthy |
+| Полный временный Compose-стенд | migration job завершился с кодом 0; frontend, API и PostgreSQL healthy |
 | HTTP frontend `/` | 200, HTML |
 | HTTP frontend / API `/health/live` | 200, `status: ok` |
-| HTTP frontend / API `/health/ready` | 503, `status: unavailable` |
+| HTTP frontend / API `/health/ready` после миграций | 200, `status: ok` |
+| HTTP frontend / API readiness при остановленной БД | 503; liveness API остаётся 200 |
+| HTTP API readiness после восстановления БД | снова 200 |
 | HTTP production API `/docs` | 404 |
 | Пользователи контейнеров | API uid 10001, frontend uid 1000 |
 | Поиск `FASTAPI_INTERNAL_URL` / `api:8000` в клиентском `.next/static` | совпадений нет |
 | Исключения Git | `.env.local`, backend `.env`, кеш и node_modules исключены |
 
-Backend-тесты проверяют различие liveness/readiness, скрытие документации в production и отказ от неизвестной timezone. Frontend-тесты проверяют отказ без конфигурации, запрет credential в URL и внешнего plaintext production upstream, запрет кеширования/редиректов и наличие timeout signal.
+Backend-тесты проверяют различие liveness/readiness, скрытие документации в production, timezone и конфигурацию БД. На отдельной PostgreSQL проверены upgrade → downgrade → upgrade, повторный upgrade, отсутствие расхождения ORM и миграции через Alembic check, отказ readiness для более новой схемы, UNIQUE email, конкурентная вставка одного email, rollback после выполненного INSERT, FK и ограничения сессий, timezone-aware timestamps, readiness при неверном пароле и недоступной БД. Таблицы не создаются через `create_all`.
+
+Frontend-тесты проверяют отказ без конфигурации, запрет credential в URL и внешнего plaintext production upstream, запрет кеширования/редиректов и наличие timeout signal. Frontend в этом этапе не менялся; его проверки в таблице относятся к исходной подготовке. Контейнерный smoke test проверен повторно с новой схемой backend.
 
 ## Решения по совместимости
 
@@ -38,9 +42,9 @@ Backend-тесты проверяют различие liveness/readiness, ск�
 
 ## Границы проверки
 
-Шаг 1 не подтверждает готовность продукта к приёму пользовательских данных. БД доступна как инфраструктура; ORM, схема и миграции ещё не созданы, поэтому readiness намеренно отрицательная.
+Проверки не подтверждают готовность продукта к приёму пользовательских данных. ORM и начальная схема пользователей/сессий реализованы, но регистрация и управление сессиями ещё отсутствуют. Положительная readiness подтверждает только доступность и совместимость схемы БД с этим релизом.
 
-Не выполнялись auth/CSRF/E2E сценарии, PostgreSQL-тесты прикладных транзакций, аудит Python-зависимостей, полный поиск секретов специализированным сканером, backup/restore и публичный деплой: эти части ещё предстоит реализовать. npm audit не заменяет общий аудит безопасности.
+Не выполнялись auth/CSRF/E2E сценарии, тесты конкуренции прикладных команд проектов и задач, аудит Python-зависимостей, полный поиск секретов специализированным сканером, backup/restore и публичный деплой: эти части ещё предстоит реализовать. npm audit не заменяет общий аудит безопасности.
 
 Workflow CI подготовлен, но не запускался на GitHub: репозиторий инициализирован только локально, remote и публикация не настроены. Локальные проверки этого не подменяют.
 

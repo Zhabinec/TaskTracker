@@ -1,0 +1,17 @@
+name: tasktracker-tests
+services:
+  db:
+    image: postgres:18-bookworm@sha256:5c4783a8cc3f0074912164f94dfa1be4e043438f0f707cf968d7af9a0d31a2c8
+    environment:
+      POSTGRES_USER: tasktracker
+      POSTGRES_PASSWORD: isolated-tests-only
+      POSTGRES_DB: tasktracker_test
+    ports:
+      - "127.0.0.1:${TEST_POSTGRES_PORT:-15433}:5432"
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
