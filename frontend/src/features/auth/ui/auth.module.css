@@ -1,0 +1,24 @@
+.shell { min-height: 100svh; display: grid; grid-template-columns: 1fr 1fr; }
+.story { background: #e4ece2; padding: 44px clamp(28px, 5vw, 84px); display: flex; flex-direction: column; justify-content: space-between; gap: 64px; }
+.story h1 { font-size: clamp(40px, 4.5vw, 70px); line-height: 1.1; letter-spacing: -.045em; margin-bottom: 28px; }
+.copy { max-width: 340px; color: var(--muted); font-size: 18px; }
+.footer { font-size: 12px; color: var(--muted); margin: 0; }
+.panel { padding: 64px 28px; display: flex; align-items: center; justify-content: center; }
+.card { width: 100%; max-width: 390px; }
+.card h2 { font-size: 30px; letter-spacing: -1px; margin-bottom: 12px; line-height: 1.2; }
+.form { display: flex; flex-direction: column; gap: 10px; }
+.card .form { margin: 32px 0 24px; }
+.form label { font-size: 14px; font-weight: 600; }
+.form input:not([type=hidden]) { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); margin-bottom: 12px; }
+.hint { color: var(--muted); font-size: 12px; margin-top: -12px; }
+.error { color: #922f2a; background: #fff0ed; border-left: 3px solid #b33b32; padding: 12px; font-size: 14px; margin: 0 0 8px; }
+.switch { font-size: 14px; }
+.switch a { margin-left: 6px; font-weight: 600; }
+@media (max-width: 760px) {
+  .shell { grid-template-columns: 1fr; }
+  .story { padding: 24px; gap: 32px; }
+  .story h1 { font-size: 38px; margin-bottom: 14px; }
+  .story h1 br { display: none; }
+  .story :global(.eyebrow), .footer, .copy { display: none; }
+  .panel { padding: 40px 24px; align-items: flex-start; }
+}

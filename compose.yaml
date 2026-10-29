@@ -55,6 +55,7 @@ services:
         condition: service_healthy
     environment:
       FASTAPI_INTERNAL_URL: http://api:8000
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
     ports:
       - "127.0.0.1:3000:3000"
     healthcheck:
