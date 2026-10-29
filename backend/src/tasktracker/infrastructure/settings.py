@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     db_name: str = "tasktracker"
     db_user: str = "tasktracker"
     db_password: SecretStr | None = None
+    session_hours: int = Field(default=168, ge=1, le=720)
+    auth_global_limit: int = Field(default=60, ge=1, le=10000)
+    auth_account_limit: int = Field(default=5, ge=1, le=100)
 
     def connection_url(self) -> URL | None:
         if self.database_url is not None:

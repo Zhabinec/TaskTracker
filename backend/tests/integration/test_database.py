@@ -1,6 +1,4 @@
 import asyncio
-import os
-from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -8,7 +6,7 @@ import pytest
 from alembic import command
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
-from sqlalchemy import Connection, insert, make_url, select, text
+from sqlalchemy import Connection, insert, select, text
 from sqlalchemy.exc import IntegrityError
 
 from tasktracker.bootstrap import create_app
@@ -16,43 +14,9 @@ from tasktracker.infrastructure.db.engine import Database
 from tasktracker.infrastructure.db.migrate import migration_config
 from tasktracker.infrastructure.db.models import SessionModel, UserModel
 from tasktracker.infrastructure.settings import Settings
+from tests.integration.support import migrate
 
 pytestmark = [pytest.mark.integration, pytest.mark.anyio]
-
-
-@pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
-
-
-async def migrate(database: Database, revision: str) -> None:
-    def run(connection: Connection) -> None:
-        config = migration_config()
-        config.attributes["connection"] = connection
-        if revision == "base":
-            command.downgrade(config, revision)
-        else:
-            command.upgrade(config, revision)
-
-    async with database.engine.begin() as connection:
-        await connection.run_sync(run)
-
-
-@pytest.fixture
-async def database() -> AsyncIterator[Database]:
-    value = os.environ.get("TEST_DATABASE_URL")
-    if not value:
-        pytest.skip("Set TEST_DATABASE_URL to a dedicated PostgreSQL *_test database")
-    url = make_url(value)
-    if url.drivername != "postgresql+asyncpg" or not (url.database or "").endswith("_test"):
-        pytest.fail("Integration tests require a dedicated PostgreSQL database ending in _test")
-    instance = Database(url)
-    try:
-        await migrate(instance, "base")
-        yield instance
-    finally:
-        await migrate(instance, "base")
-        await instance.close()
 
 
 async def test_migration_round_trip_and_schema_readiness(database: Database) -> None:
@@ -84,7 +48,8 @@ async def test_readiness_rejects_a_newer_schema(database: Database) -> None:
     finally:
         async with database.engine.begin() as connection:
             await connection.execute(
-                text("UPDATE alembic_version SET version_num = '0001_identity'")
+                text("UPDATE alembic_version SET version_num = :revision"),
+                {"revision": next(iter(database.expected_heads))},
             )
 
 

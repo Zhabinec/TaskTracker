@@ -3,8 +3,15 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from tasktracker.api.auth import create_auth_router
+from tasktracker.api.errors import install_error_handlers
 from tasktracker.api.health import create_health_router
+from tasktracker.api.transport import HttpTransport
+from tasktracker.application.auth.service import AuthService
+from tasktracker.infrastructure.db.auth import PostgresAuthRateLimit, SqlAuthUnitOfWork
 from tasktracker.infrastructure.db.engine import Database
+from tasktracker.infrastructure.security.passwords import ArgonPasswords
+from tasktracker.infrastructure.security.sessions import OpaqueTokens
 from tasktracker.infrastructure.settings import Settings
 
 
@@ -30,4 +37,18 @@ def create_app(settings: Settings) -> FastAPI:
         lifespan=lifespan,
     )
     app.include_router(create_health_router(database))
+    auth = None
+    if database is not None:
+        auth = AuthService(
+            lambda: SqlAuthUnitOfWork(database.sessions),
+            ArgonPasswords(),
+            OpaqueTokens(),
+            PostgresAuthRateLimit(
+                database.sessions, settings.auth_global_limit, settings.auth_account_limit
+            ),
+            settings.session_hours,
+        )
+    app.include_router(create_auth_router(auth))
+    install_error_handlers(app)
+    app.add_middleware(HttpTransport)
     return app

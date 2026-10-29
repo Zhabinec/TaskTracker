@@ -5,6 +5,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Integer,
     MetaData,
     String,
     func,
@@ -54,3 +55,12 @@ class SessionModel(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AuthRateWindow(Base):
+    __tablename__ = "auth_rate_windows"
+    __table_args__ = (CheckConstraint("attempts > 0", name="ck_auth_rate_windows_attempts"),)
+
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    attempts: Mapped[int] = mapped_column(Integer)
