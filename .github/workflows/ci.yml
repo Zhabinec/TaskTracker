@@ -91,7 +91,7 @@ jobs:
         env:
           POSTGRES_PASSWORD: ci-ephemeral-database-password
         run: |
-          docker compose up --build --wait --wait-timeout 180
+          docker compose --profile cloud up --build --wait --wait-timeout 180
           curl --fail http://127.0.0.1:8000/health/live
           curl --fail http://127.0.0.1:3000/health/live
           curl --fail http://127.0.0.1:3000/
@@ -112,4 +112,4 @@ jobs:
         if: always()
         env:
           POSTGRES_PASSWORD: ci-ephemeral-database-password
-        run: docker compose down --volumes
+        run: docker compose --profile cloud down --volumes
