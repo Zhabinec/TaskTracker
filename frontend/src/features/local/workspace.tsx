@@ -5,6 +5,7 @@ import type { LocalProfile, Project, Task, TaskStatus } from "./contracts";
 import { createProject, listProjects, listTasks, profile, subscribeChanges } from "./store";
 import styles from "./local.module.css";
 import { TaskList } from "./task-list";
+import { WorkspaceBackupControls } from "./workspace-backup";
 import { TaskComposer } from "./task-composer";
 import { statusLabels as labels } from "./contracts";
 
@@ -70,6 +71,7 @@ export function LocalWorkspace() {
         </button>)}</div>
         {moreProjects && <button className={`secondary ${styles.loadMore}`} onClick={() => setProjectLimit(value => value + 50)}>More projects</button>}
         <form className={styles.inlineForm} onSubmit={addProject}><label htmlFor="project-name">New project</label><input id="project-name" placeholder="Name" value={projectName} onChange={event => setProjectName(event.target.value)} maxLength={100} required disabled={working} /><button className="secondary" disabled={working} type="submit" aria-label="Create project" title="Create project">＋</button></form>
+        <WorkspaceBackupControls />
       </aside>
       <section className={`glass ${styles.board}`} aria-labelledby="board-title">
         <div className={styles.boardHeading}><h2 id="board-title" tabIndex={-1}>{project?.name ?? "Tasks"}</h2>{project && <span className={styles.countBadge}>{total}</span>}</div>

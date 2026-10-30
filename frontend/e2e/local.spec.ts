@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 test("open without credentials, create a project and keep tasks offline after reload", async ({ page, context }) => {
   const apiCalls: string[] = [];
@@ -217,4 +218,37 @@ test("create completed tasks in bulk, move selected tasks and confirm deletion",
   await page.reload();
   await expect(page.getByText("No tasks yet", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+
+test("export and restore a backup offline without overwriting existing projects", async ({ page, context }) => {
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Get started" }).click();
+  await page.getByLabel("New project", { exact: true }).fill("Backup project");
+  await page.getByRole("button", { name: "Create project" }).click();
+  await page.getByLabel("Task", { exact: true }).fill("Keep this work");
+  await page.getByRole("combobox", { name: "New task status" }).selectOption("Done");
+  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  await expect(page.getByRole("combobox", { name: "Status: Keep this work", exact: true })).toHaveValue("Done");
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  await context.setOffline(true);
+  await page.getByText("Backups", { exact: true }).click();
+  const downloaded = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export backup", exact: true }).click();
+  const download = await downloaded;
+  const buffer = await readFile((await download.path())!);
+  const backup = JSON.parse(buffer.toString("utf8"));
+  expect(backup.projects).toHaveLength(1); expect(backup.tasks).toHaveLength(1);
+  await page.getByLabel("Import backup", { exact: true }).setInputFiles({ name: "invalid.json", mimeType: "application/json", buffer: Buffer.from('{"version":999}') });
+  await expect(page.getByRole("alert").filter({ hasText: "Unsupported backup" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Backup project/ })).toHaveCount(1);
+  await page.getByLabel("Import backup", { exact: true }).setInputFiles({ name: "backup.json", mimeType: "application/json", buffer });
+  await expect(page.getByText("1 project · 1 task. Imports as new copies.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Backup project/ })).toHaveCount(1);
+  await page.getByRole("button", { name: "Import copies", exact: true }).click();
+  await expect(page.getByRole("button", { name: /^Backup project/ })).toHaveCount(2);
+  await page.reload();
+  await expect(page.getByRole("button", { name: /^Backup project/ })).toHaveCount(2);
+  await expect(page.getByRole("combobox", { name: "Status: Keep this work", exact: true })).toHaveValue("Done");
 });

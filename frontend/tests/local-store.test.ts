@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { createTasks, changeTasks, editTask, changeTask, createProject, createTask, listProjects, listTasks, profile, saveProfile } from "../src/features/local/store";
+import { exportWorkspace, importWorkspace, createTasks, changeTasks, editTask, changeTask, createProject, createTask, listProjects, listTasks, profile, saveProfile } from "../src/features/local/store";
 
 beforeAll(() => {
   vi.stubGlobal("window", Object.assign(new EventTarget(), { indexedDB }));
@@ -132,4 +132,25 @@ it("can edit directly into Done and reopen without inflating progress", async ()
   await editTask(task, task.title, "", "InProgress");
   expect((await listTasks(project.id, "all")).items[0].completedAt).toBeNull();
   expect((await listProjects()).items.find(value => value.id === project.id)?.doneCount).toBe(0);
+});
+
+
+it("restores backups as independent copies and recomputes project counters", async () => {
+  const source = JSON.parse(await exportWorkspace());
+  const before = (await listProjects(1000)).items;
+  expect(source.projects).toHaveLength(before.length);
+  for (const project of source.projects) { project.taskCount = 99999; project.doneCount = -1; }
+  await importWorkspace(JSON.stringify(source));
+  const after = (await listProjects(1000)).items;
+  expect(after).toHaveLength(before.length * 2);
+  const originalIds = new Set(before.map(project => project.id));
+  const copies = after.filter(project => !originalIds.has(project.id));
+  for (const project of copies) {
+    const tasks = (await listTasks(project.id, "all", 1000)).items;
+    expect(project.taskCount).toBe(tasks.length);
+    expect(project.doneCount).toBe(tasks.filter(task => task.status === "Done").length);
+    expect(tasks.every(task => !source.tasks.some((original: { id: string }) => original.id === task.id))).toBe(true);
+  }
+  await expect(importWorkspace(JSON.stringify({ ...source, tasks: [...source.tasks, { ...source.tasks[0], id: "orphan", projectId: "missing" }] }))).rejects.toThrow("no project");
+  expect((await listProjects(1000)).items).toHaveLength(after.length);
 });

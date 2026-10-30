@@ -1,5 +1,7 @@
 import { validDate, validName, validStatus } from "./contracts";
 import type { LocalProfile, Project, Task, TaskPage, TaskStatus } from "./contracts";
+import { parseBackup, backupLimit } from "./backup";
+import type { WorkspaceBackup } from "./backup";
 
 let opened: Promise<IDBDatabase> | undefined;
 let channel: BroadcastChannel | undefined;
@@ -135,6 +137,31 @@ export async function changeTasks(selected: Task[], status: TaskStatus | "delete
       else tasks.put({ ...current, status, completedAt: status === "Done" ? current.completedAt ?? now : null, version: current.version + 1 });
       projects.put({ ...project, taskCount: project.taskCount - (status === "delete" ? 1 : 0), doneCount: project.doneCount - (current.status === "Done" ? 1 : 0) + (status === "Done" ? 1 : 0), updatedAt: now });
     }
+  } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
+  await done; changed();
+}
+
+export async function exportWorkspace(): Promise<string> {
+  const db = await database(); const tx = db.transaction(["projects", "tasks"]); const done = committed(tx);
+  const [projects, tasks] = await Promise.all([
+    result<Project[]>(tx.objectStore("projects").getAll(undefined, 1001)),
+    result<Task[]>(tx.objectStore("tasks").getAll(undefined, 20001)),
+  ]);
+  await done;
+  if (projects.length > 1000 || tasks.length > 20000) throw new Error("Export supports up to 1,000 projects and 20,000 tasks.");
+  const data: WorkspaceBackup = { format: "tasktracker-backup", version: 1, exportedAt: new Date().toISOString(), projects, tasks };
+  const source = JSON.stringify(data, null, 2);
+  if (new TextEncoder().encode(source).byteLength > backupLimit) throw new Error("Backup exceeds 5 MB.");
+  return source;
+}
+export async function importWorkspace(source: string): Promise<void> {
+  // Validate again at the write boundary; never trust a UI preview object.
+  const data = parseBackup(source);
+  const ids = new Map(data.projects.map(project => [project.id, crypto.randomUUID()]));
+  const db = await database(); const tx = db.transaction(["projects", "tasks"], "readwrite"); const done = committed(tx);
+  try {
+    for (const project of data.projects) tx.objectStore("projects").add({ ...project, id: ids.get(project.id)! });
+    for (const task of data.tasks) tx.objectStore("tasks").add({ ...task, id: crypto.randomUUID(), projectId: ids.get(task.projectId)! });
   } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
   await done; changed();
 }
