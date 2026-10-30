@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { flushDrafts } from "@/features/local/draft-controller";
 
 export function OfflineRuntime() {
+  const [updating, setUpdating] = useState(false); const [updateError, setUpdateError] = useState("");
   const [waiting, setWaiting] = useState<ServiceWorkerRegistration>();
   const [status, setStatus] = useState(""); const reload = useRef(false);
   useEffect(() => {
@@ -35,6 +37,6 @@ export function OfflineRuntime() {
     })().catch(() => { if (active) setStatus("Offline setup unavailable"); });
     return () => { active = false; navigator.serviceWorker.removeEventListener("controllerchange", change); };
   }, []);
-  if (waiting) return <div className="glass runtime-notice" role="status">Update available<button className="secondary" onClick={() => { reload.current = true; waiting.waiting?.postMessage("SKIP_WAITING"); }}>Update</button></div>;
+  if (waiting) return <div className="glass runtime-notice" role="status">Update available<button className="secondary" disabled={updating} onClick={() => { setUpdating(true); setUpdateError(""); void flushDrafts().then(() => { reload.current = true; waiting.waiting?.postMessage("SKIP_WAITING"); }).catch(() => { setUpdateError("Save your draft before updating."); setUpdating(false); }); }}>{updating ? "Saving…" : "Update"}</button>{updateError && <span role="alert">{updateError}</span>}</div>;
   return status ? <div className="glass runtime-notice" role="status"><span aria-hidden="true">◈</span>{status}<button className="secondary" aria-label="Dismiss" onClick={() => setStatus("")}>×</button></div> : null;
 }

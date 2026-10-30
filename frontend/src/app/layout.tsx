@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { DraftSafety } from "@/features/local/draft-safety";
 import { AmbientBackdrop } from "@/shared/ui/ambient-backdrop";
 import { OfflineRuntime } from "@/shared/ui/offline-runtime";
 import "./globals.css";
@@ -18,5 +19,5 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return <html lang="en"><head>
     <link rel="preload" href="/fonts/jakarta-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
-  </head><body><AmbientBackdrop />{children}<OfflineRuntime /></body></html>;
+  </head><body><AmbientBackdrop />{children}<DraftSafety /><OfflineRuntime /></body></html>;
 }

@@ -31,3 +31,5 @@ h1, h2, h3, h4, h5, h6, .brand { font-family: var(--font-heading); }
 .runtime-notice button { padding: 6px 10px; font-size: 11px; }
 @media(max-width:680px) { .glass { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }.runtime-notice { left: 16px; right: 16px; bottom: 12px; } }
 @media(prefers-reduced-motion:reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+
+.draft-safety { position: sticky; bottom: 90px; margin: 16px auto; padding: 14px 18px; max-width: min(620px, calc(100% - 32px)); border-radius: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 12px; }

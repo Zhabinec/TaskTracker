@@ -2,13 +2,15 @@
 
 import { useRef, useState } from "react";
 import type { Task, TaskStatus } from "./contracts";
+import type { Draft } from "./draft-contracts";
 import { changeTasks } from "./store";
 import { StatusSelect } from "./status-select";
 import { TaskEditor } from "./task-editor";
 import styles from "./local.module.css";
 
-export function TaskList({ tasks, onChanged }: { tasks: Task[]; onChanged: (count: number, status: TaskStatus | "delete") => void }) {
-  const [editing, setEditing] = useState<Task>();
+export function TaskList({ tasks, resumeDraft, emptyLabel, onChanged }: { tasks: Task[]; resumeDraft?: Draft; emptyLabel: string; onChanged: (count: number, status: TaskStatus | "delete") => void }) {
+  const [editing, setEditing] = useState<Task | undefined>(resumeDraft?.task);
+  const visibleTasks = editing && !tasks.some(task => task.id === editing.id) ? [editing, ...tasks] : tasks;
   const [selecting, setSelecting] = useState(false); const [selected, setSelected] = useState<Task[]>([]);
   const [target, setTarget] = useState<TaskStatus>("Done");
   const [deleting, setDeleting] = useState<Task[]>([]);
@@ -27,10 +29,11 @@ export function TaskList({ tasks, onChanged }: { tasks: Task[]; onChanged: (coun
     finally { busy.current = false; setWorking(false); }
   }
   return <>
-    <div className={styles.selectionBar}>
+    {!visibleTasks.length && <div className={styles.empty}><span className={styles.emptyIcon} aria-hidden="true">✧</span><strong>{emptyLabel}</strong></div>}
+    {visibleTasks.length > 0 && <div className={styles.selectionBar}>
       <button type="button" className={styles.textAction} disabled={working || Boolean(editing)} aria-pressed={selecting} onClick={() => { setSelecting(value => !value); setSelected([]); setDeleting([]); setError(""); }}>{selecting ? "Cancel selection" : "Select tasks"}</button>
       {selecting && <button className={styles.textAction} disabled={working} onClick={() => { setSelected(tasks.slice(0, 100)); setDeleting([]); }}>Select loaded ({Math.min(tasks.length, 100)})</button>}
-    </div>
+    </div>}
     {selecting && <div className={styles.bulkBar} aria-label="Selected tasks">
       <span>{selected.length} selected</span>
       <StatusSelect label="Selected tasks status" value={target} onChange={setTarget} disabled={working} />
@@ -43,9 +46,9 @@ export function TaskList({ tasks, onChanged }: { tasks: Task[]; onChanged: (coun
       <div className={styles.editorActions}><button className="secondary" autoFocus disabled={working} onClick={() => { setDeleting([]); focus(deleteOrigin.current); }}>Cancel</button>
         <button className="primary" disabled={working} onClick={() => void change(deleting, "delete")}>Delete permanently</button></div>
     </section>}
-    <ul className={styles.taskList}>{tasks.map(task => <li key={task.id} className={styles.task}>
+    <ul className={styles.taskList}>{visibleTasks.map(task => <li key={task.id} className={styles.task}>
       {selecting && <label className={styles.selectionTarget}><input type="checkbox" aria-label={`Select task: ${task.title}`} checked={selected.some(value => value.id === task.id)} disabled={working || (selected.length >= 100 && !selected.some(value => value.id === task.id))} onChange={event => { setDeleting([]); setSelected(current => event.target.checked ? [...current, task] : current.filter(value => value.id !== task.id)); }} /></label>}
-      <div className={styles.taskContent}>{editing?.id === task.id ? <TaskEditor task={editing} onClose={closeEditor} onSaved={status => onChanged(1, status)} /> : <>
+      <div className={styles.taskContent}>{editing?.id === task.id ? <TaskEditor task={editing} draftId={resumeDraft?.task?.id === task.id ? resumeDraft.id : undefined} onClose={closeEditor} onSaved={status => onChanged(1, status)} /> : <>
         <button className={`${styles.taskTitle} ${styles.editTask} ${task.status === "Done" ? styles.done : ""}`} id={`edit-task-${task.id}`} aria-label={`Edit task: ${task.title}`} disabled={working || selecting || Boolean(editing)} onClick={() => { setEditing(task); setDeleting([]); }}>{task.title}</button>
         <div className={styles.taskMeta}>
           <StatusSelect id={`status-${task.id}`} label={`Status: ${task.title}`} value={task.status} disabled={working || selecting || Boolean(editing)} onChange={status => void change([task], status)} />

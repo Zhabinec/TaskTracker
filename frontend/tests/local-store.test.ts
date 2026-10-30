@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { exportWorkspace, importWorkspace, createTasks, changeTasks, editTask, changeTask, createProject, createTask, listProjects, listTasks, profile, saveProfile } from "../src/features/local/store";
+import { saveDraft, readDraft, listDrafts, subscribeChanges, subscribeDraftChanges, exportWorkspace, importWorkspace, createTasks, changeTasks, editTask, changeTask, createProject, createTask, listProjects, listTasks, profile, saveProfile } from "../src/features/local/store";
 
 beforeAll(() => {
   vi.stubGlobal("window", Object.assign(new EventTarget(), { indexedDB }));
@@ -153,4 +153,52 @@ it("restores backups as independent copies and recomputes project counters", asy
   }
   await expect(importWorkspace(JSON.stringify({ ...source, tasks: [...source.tasks, { ...source.tasks[0], id: "orphan", projectId: "missing" }] }))).rejects.toThrow("no project");
   expect((await listProjects(1000)).items).toHaveLength(after.length);
+});
+
+
+it("version-checks drafts and commits task creation with draft removal atomically", async () => {
+  const project = await createProject("Draft creation");
+  const content = { projectId: project.id, kind: "composer" as const, data: { single: "New task", multiple: "", mode: "single" as const, dueDate: "", status: "Done" as const } };
+  const draft = await saveDraft(crypto.randomUUID(), content, 0);
+  await expect(createTasks(project.id, ["New task"], "", "Done", { id: draft.id, version: 999 })).rejects.toThrow("Draft changed");
+  expect((await listTasks(project.id, "all")).items).toHaveLength(0);
+  expect(await readDraft(draft.id)).toEqual(draft);
+  await createTasks(project.id, ["New task"], "", "Done", draft);
+  expect(await readDraft(draft.id)).toBeUndefined();
+  expect((await listProjects(1000)).items.find(value => value.id === project.id)).toMatchObject({ taskCount: 1, doneCount: 1 });
+  await expect(createTasks(project.id, ["Duplicate retry"], "", "Done", draft)).rejects.toThrow("Draft changed");
+  expect((await listTasks(project.id, "all")).items).toHaveLength(1);
+});
+
+it("keeps saved edits when a task conflict aborts the entire transaction", async () => {
+  const project = await createProject("Draft conflict");
+  await createTask(project.id, "Original", ""); const task = (await listTasks(project.id, "all")).items[0];
+  const draft = await saveDraft(crypto.randomUUID(), { projectId: project.id, kind: "editor", task, data: { single: "My draft", multiple: "", mode: "single", status: "Todo", dueDate: "" } }, 0);
+  await changeTask(task, "Done");
+  await expect(editTask(task, "My draft", "", "Todo", draft)).rejects.toThrow("another tab");
+  expect(await readDraft(draft.id)).toEqual(draft);
+  expect((await listTasks(project.id, "all")).items[0]).toMatchObject({ title: "Original", status: "Done" });
+});
+
+it("preserves the inactive creation mode when submitting the other draft", async () => {
+  const project = await createProject("Two drafts");
+  const content = { projectId: project.id, kind: "composer" as const, data: { single: "Single", multiple: "Batch one\nBatch two", mode: "single" as const, status: "Todo" as const, dueDate: "" } };
+  const draft = await saveDraft(crypto.randomUUID(), content, 0);
+  const remainder = { ...content, data: { ...content.data, single: "" } };
+  await createTasks(project.id, ["Single"], "", "Todo", { ...draft, remainder });
+  expect(await readDraft(draft.id)).toMatchObject({ version: 2, data: { single: "", multiple: "Batch one\nBatch two" } });
+  const outcomes = await Promise.allSettled([saveDraft(draft.id, remainder, 2), saveDraft(draft.id, content, 2)]);
+  expect(outcomes.filter(result => result.status === "fulfilled")).toHaveLength(1);
+  expect(outcomes.filter(result => result.status === "rejected")).toHaveLength(1);
+});
+
+it("isolates draft reads and notifications from workspace list refreshes", async () => {
+  const changed = vi.fn(); const draftsChanged = vi.fn();
+  const stop = subscribeChanges(changed); const stopDrafts = subscribeDraftChanges(draftsChanged);
+  const id = crypto.randomUUID();
+  await saveDraft(id, { projectId: "isolated-drafts", kind: "composer", data: { single: "Text", multiple: "", mode: "single", dueDate: "", status: "Todo" } }, 0);
+  expect(changed).not.toHaveBeenCalled(); expect(draftsChanged).toHaveBeenCalledTimes(1);
+  expect((await listDrafts("isolated-drafts")).items.map(value => value.id)).toEqual([id]);
+  expect((await listDrafts("another-project")).items).toHaveLength(0);
+  stop(); stopDrafts();
 });
