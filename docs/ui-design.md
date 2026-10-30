@@ -17,6 +17,12 @@ Use the existing CSS variables and CSS Modules; keep client interactions in smal
 - Keep drafts and errors visible when saving fails. Show progress during writes.
 - Respect reduced motion. Animate transform/opacity briefly, without shifting layout.
 - On small screens, keep forms within the viewport. No nested glass blur per task.
+- Status changes always name the destination. A filter changes the view, not data.
+  When a task leaves the filter, explain its destination and provide View.
+- Single/batch creation supports every status, including Done. Keep shared batch
+  settings visible. Multi-selection names the count and affects only selected rows.
+- Confirm irreversible deletion with the affected title/count and a safe Cancel.
+- Backup import previews counts and adds copies; it never replaces existing data.
 
 ## Sources and tools
 
