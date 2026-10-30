@@ -1,6 +1,6 @@
 # Local release: use cases and acceptance
 
-The current build is a local beta, not a finished public release. The first release
+The current build is local 1.0.0-rc.1, pending physical-device and deployment acceptance. The first release
 is an offline single-device workspace. Cloud identity, Workspace service and sync
 have a separate release scope; a browser profile is never a cloud credential.
 
@@ -37,24 +37,29 @@ an explicit error; export never silently truncates. Files contain project/task d
 as plain JSON. Profile settings and unfinished drafts are not imported. Duplicate imports intentionally
 create additional copies; this is not a merge or automatic synchronization.
 
-## Work remaining before public local 1.0
+## Implemented in the local release candidate
 
-1. **Draft safety device acceptance:** local draft persistence, conflicts, navigation,
-   reload, tab recovery and app updates are implemented and covered in Chromium.
-   Validate real iOS/Android lifecycle behavior and OS termination. No promise of
-   recovery when storage rejects writes and the browser process is forcibly killed.
-2. **Project lifecycle:** rename/archive/restore projects, task descriptions and
-   moving tasks to another project with exact counters and explicit destination.
-3. **Daily use at scale:** search, due/overdue views, stable pagination; ensure a
-   selected project stays visible when project order changes beyond the loaded page.
-4. **Failure recovery:** browser quota/denied-storage tests, import transaction
-   failure tests, empty/large backup round trips and supported schema migration tests.
-5. **Browser/device acceptance:** Chromium, Firefox and WebKit automation; real
-   Android Chrome and iOS Safari installed PWA, file import/export, keyboard,
-   safe areas, accessibility text scaling and multi-tab conflicts.
-6. **Release operations:** accessible HTTPS endpoint, installation walkthrough,
-   remote CI green, tagged build, license/dependency review, upgrade and rollback
-   rehearsal with existing IndexedDB data. No public deployment has been performed.
+- Project rename (with recoverable draft and version conflict checks), archive and
+  restore. Archive keeps tasks/drafts; task mutations require restoration first.
+- Descriptions up to 5,000 characters. Individual and selected-task moves preserve
+  status, completion time and exact counters in both projects; stale batches roll back.
+- Search in titles/descriptions, local-calendar due filters and cursor pagination.
+  Selected projects are pinned through direct lookup even beyond the loaded list.
+- IndexedDB v1/v2→v3 migration, legacy/v2 backups, empty and 1,000-task backup round
+  trips, import-write rollback and storage-failure recovery tests.
+- Pinned, repeatable Chromium/Firefox/WebKit container checks; updated CI matrix,
+  production dependency audit and direct dependency/font notice inventory.
+- Validated optional Caddy HTTPS configuration and [release runbook](release.md).
 
-Each item requires implementation plus evidence. A successful local Chromium test
-run does not close physical-device or public deployment acceptance.
+## Required acceptance outside this checkout
+
+1. Physical iOS/Android installed PWA lifecycle, touch targets and accessibility text
+   scaling. Recovery cannot be promised after forced OS termination while storage
+   rejects writes.
+2. A real DNS hostname/server, working public TLS, phone installation and rehearsal
+   of the production update/rollback procedure with existing data.
+3. Connect a Git remote and run the prepared CI jobs there. No remote is configured;
+   local verification does not establish remote CI success.
+
+The candidate can be tested locally now. Public 1.0 requires these environmental
+checks; cloud Workspace/sync remains a separately scoped future release.

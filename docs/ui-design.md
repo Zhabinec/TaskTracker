@@ -30,6 +30,13 @@ Use the existing CSS variables and CSS Modules; keep client interactions in smal
 - Cancel/Escape discards the saved edit as well as its in-memory fields. Discard is
   explicit; reload and app updates preserve drafts. Storage failures retain text,
   show feedback, and guard navigation until retry or deliberate discard.
+- Project settings stay secondary. Archive is reversible and preserves work;
+  archived tasks are read-only until Restore. Rename drafts keep the original
+  project revision so another tab's metadata cannot be silently replaced.
+- Moves name their destination and offer View project. Preserve task status/dates;
+  update both project counters atomically. Search and due filters change only view.
+- Keep phone controls at least 16px to avoid input zoom. Restore keyboard focus
+  after the new DOM is committed, rather than guessing a frame delay.
 
 ## Sources and tools
 
