@@ -15,7 +15,7 @@ describe("backup validation", () => {
   });
   it("rejects unsupported versions, duplicate ids and inconsistent completion", () => {
     const backup = fixture();
-    expect(() => parseBackup(JSON.stringify({ ...backup, version: 2 }))).toThrow("Unsupported");
+    expect(() => parseBackup(JSON.stringify({ ...backup, version: 3 }))).toThrow("Unsupported");
     expect(() => parseBackup(JSON.stringify({ ...backup, projects: [...backup.projects, ...backup.projects] }))).toThrow("Duplicate project");
     expect(() => parseBackup(JSON.stringify({ ...backup, tasks: [...backup.tasks, ...backup.tasks] }))).toThrow("Duplicate task");
     expect(() => parseBackup(JSON.stringify({ ...backup, tasks: [{ ...backup.tasks[0], completedAt: null }] }))).toThrow("inconsistent");

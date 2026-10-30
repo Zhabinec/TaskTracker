@@ -1,5 +1,5 @@
-import { validDate, validName, validStatus } from "./contracts";
-import type { LocalProfile, Project, Task, TaskPage, TaskStatus } from "./contracts";
+import { localToday, validDate, validDescription, validName, validStatus } from "./contracts";
+import type { DueFilter, LocalProfile, Project, Task, TaskPage, TaskStatus } from "./contracts";
 import { parseBackup, backupLimit } from "./backup";
 import type { WorkspaceBackup } from "./backup";
 import type { Draft, DraftContent, DraftReceipt } from "./draft-contracts";
@@ -20,14 +20,21 @@ export function subscribeChanges(listener: () => void) {
 function database(): Promise<IDBDatabase> {
   if (!opened) opened = new Promise((resolve, reject) => {
     if (!window.indexedDB) { reject(new Error("This browser does not support local storage.")); return; }
-    const request = indexedDB.open("tasktracker-local", 2);
+    const request = indexedDB.open("tasktracker-local", 3);
     request.onupgradeneeded = event => {
       const db = request.result;
       if (event.oldVersion < 2) { const drafts = db.createObjectStore("drafts", { keyPath: "id" }); drafts.createIndex("project", ["projectId", "updatedAt", "id"]); }
-      if (event.oldVersion >= 1) return;
+      if (event.oldVersion >= 1) {
+        if (event.oldVersion < 3) {
+          const projects = request.transaction!.objectStore("projects"); projects.createIndex("state", ["state", "updatedAt", "id"]);
+          const cursor = projects.openCursor(); cursor.onsuccess = () => { const entry = cursor.result; if (entry) { entry.update({ ...entry.value, state: entry.value.state ?? "active", version: entry.value.version ?? 1 }); entry.continue(); } };
+        }
+        return;
+      }
       db.createObjectStore("profiles", { keyPath: "key" });
       const projects = db.createObjectStore("projects", { keyPath: "id" });
       projects.createIndex("recent", ["updatedAt", "id"]);
+      projects.createIndex("state", ["state", "updatedAt", "id"]);
       const tasks = db.createObjectStore("tasks", { keyPath: "id" });
       tasks.createIndex("project", ["projectId", "createdAt", "id"]);
       tasks.createIndex("status", ["projectId", "status", "createdAt", "id"]);
@@ -59,10 +66,10 @@ export async function saveProfile(name: string): Promise<void> {
   const previous: LocalProfile | undefined = await result(store.get("device"));
   store.put({ key: "device", id: previous?.id ?? crypto.randomUUID(), name: normalized, createdAt: previous?.createdAt ?? new Date().toISOString() } satisfies LocalProfile);
   await done; changed();
-  try { await navigator.storage?.persist?.(); } catch { /* Persistence is optional; saving already succeeded. */ }
+  try { void navigator.storage?.persist?.().catch(() => {}); } catch { /* Persistence is optional and must never block opening the workspace. */ }
 }
-export async function listProjects(limit = 50): Promise<{ items: Project[]; more: boolean }> {
-  const db = await database(); const request = db.transaction("projects").objectStore("projects").index("recent").openCursor(null, "prev");
+export async function listProjects(limit = 50, state: "active" | "archived" | "all" = "all"): Promise<{ items: Project[]; more: boolean }> {
+  const db = await database(); const request = db.transaction("projects").objectStore("projects").index(state === "all" ? "recent" : "state").openCursor(state === "all" ? null : IDBKeyRange.bound([state], [state, []]), "prev");
   return new Promise((resolve, reject) => {
     const items: Project[] = [];
     request.onerror = () => reject(request.error);
@@ -75,7 +82,7 @@ export async function listProjects(limit = 50): Promise<{ items: Project[]; more
 }
 export async function createProject(name: string, draft?: DraftReceipt): Promise<Project> {
   const normalized = validName(name, 100); const now = new Date().toISOString();
-  const project: Project = { id: crypto.randomUUID(), name: normalized, color: ["violet", "coral", "blue"][crypto.getRandomValues(new Uint8Array(1))[0] % 3], taskCount: 0, doneCount: 0, createdAt: now, updatedAt: now };
+  const project: Project = { id: crypto.randomUUID(), name: normalized, color: ["violet", "coral", "blue"][crypto.getRandomValues(new Uint8Array(1))[0] % 3], taskCount: 0, doneCount: 0, createdAt: now, updatedAt: now, state: "active", version: 1 };
   const db = await database(); const tx = db.transaction(["projects", "drafts"], "readwrite"); const done = committed(tx);
   try { await finishDraft(tx, draft); tx.objectStore("projects").add(project); }
   catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
@@ -98,31 +105,41 @@ export async function listTasks(projectId: string, status: TaskStatus | "all", l
 export async function createTask(projectId: string, title: string, dueDate: string, status: TaskStatus = "Todo"): Promise<void> {
   await createTasks(projectId, [title], dueDate, status);
 }
-export async function createTasks(projectId: string, titles: string[], dueDate: string, status: TaskStatus, draft?: DraftReceipt): Promise<void> {
+export async function createTasks(projectId: string, titles: string[], dueDate: string, status: TaskStatus, draft?: DraftReceipt, description = ""): Promise<void> {
   if (!titles.length || titles.length > 100) throw new Error("Add 1 to 100 tasks at a time.");
+  description = validDescription(description);
   const normalized = titles.map(title => validName(title, 200)); const date = validDate(dueDate); validStatus(status);
   const db = await database(); const tx = db.transaction(["tasks", "projects", "drafts"], "readwrite"); const done = committed(tx);
   try {
     await finishDraft(tx, draft);
     const projects = tx.objectStore("projects"); const project: Project | undefined = await result(projects.get(projectId));
     if (!project) throw new Error("Project not found. Refresh the list.");
+    ensureActive(project);
     const now = new Date().toISOString(); const tasks = tx.objectStore("tasks");
-    for (const title of normalized) tasks.add({ id: crypto.randomUUID(), projectId, title, dueDate: date, status, createdAt: now, completedAt: status === "Done" ? now : null, version: 1 } satisfies Task);
+    for (const title of normalized) tasks.add({ id: crypto.randomUUID(), projectId, title, dueDate: date, status, description, createdAt: now, completedAt: status === "Done" ? now : null, version: 1 } satisfies Task);
     projects.put({ ...project, taskCount: project.taskCount + normalized.length, doneCount: project.doneCount + (status === "Done" ? normalized.length : 0), updatedAt: now });
   } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
   await done; changed(); if (draft) draftsChanged();
 }
-export async function editTask(task: Task, title: string, dueDate: string, status: TaskStatus = task.status, draft?: DraftReceipt): Promise<void> {
+export async function editTask(task: Task, title: string, dueDate: string, status: TaskStatus = task.status, draft?: DraftReceipt, details?: { description: string; projectId: string }): Promise<void> {
   const normalized = validName(title, 200); const date = validDate(dueDate); validStatus(status);
+  const description = validDescription(details?.description ?? task.description ?? "");
+  const destination = details?.projectId ?? task.projectId;
   const db = await database(); const tx = db.transaction(["tasks", "projects", "drafts"], "readwrite"); const done = committed(tx);
   try {
     await finishDraft(tx, draft);
     const tasks = tx.objectStore("tasks"); const current: Task | undefined = await result(tasks.get(task.id));
     if (!current || current.version !== task.version) throw new Error("This task changed in another tab. Cancel and reopen it to retry.");
-    const projects = tx.objectStore("projects"); const project: Project | undefined = await result(projects.get(current.projectId));
-    if (!project) throw new Error("Project not found.");
-    tasks.put({ ...current, title: normalized, dueDate: date, status, completedAt: status === "Done" ? current.completedAt ?? new Date().toISOString() : null, version: current.version + 1 });
-    projects.put({ ...project, doneCount: project.doneCount - (current.status === "Done" ? 1 : 0) + (status === "Done" ? 1 : 0), updatedAt: new Date().toISOString() });
+    const projects = tx.objectStore("projects"); const source: Project | undefined = await result(projects.get(current.projectId));
+    const target: Project | undefined = destination === current.projectId ? source : await result(projects.get(destination));
+    if (!source || !target) throw new Error("Project not found."); ensureActive(source); ensureActive(target);
+    const now = new Date().toISOString();
+    tasks.put({ ...current, projectId: destination, title: normalized, description, dueDate: date, status, completedAt: status === "Done" ? current.completedAt ?? now : null, version: current.version + 1 });
+    if (source.id === target.id) projects.put({ ...source, doneCount: source.doneCount - (current.status === "Done" ? 1 : 0) + (status === "Done" ? 1 : 0), updatedAt: now });
+    else {
+      projects.put({ ...source, taskCount: source.taskCount - 1, doneCount: source.doneCount - (current.status === "Done" ? 1 : 0), updatedAt: now });
+      projects.put({ ...target, taskCount: target.taskCount + 1, doneCount: target.doneCount + (status === "Done" ? 1 : 0), updatedAt: now });
+    }
   } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
   await done; changed(); if (draft) draftsChanged();
 }
@@ -140,7 +157,7 @@ export async function changeTasks(selected: Task[], status: TaskStatus | "delete
       const current: Task | undefined = await result(tasks.get(task.id));
       if (!current || current.version !== task.version) throw new Error("A task changed in another tab. Clear the selection and retry.");
       const project: Project | undefined = await result(projects.get(current.projectId));
-      if (!project) throw new Error("Project not found.");
+      if (!project) throw new Error("Project not found."); ensureActive(project);
       if (status === "delete") tasks.delete(task.id);
       else tasks.put({ ...current, status, completedAt: status === "Done" ? current.completedAt ?? now : null, version: current.version + 1 });
       projects.put({ ...project, taskCount: project.taskCount - (status === "delete" ? 1 : 0), doneCount: project.doneCount - (current.status === "Done" ? 1 : 0) + (status === "Done" ? 1 : 0), updatedAt: now });
@@ -157,7 +174,7 @@ export async function exportWorkspace(): Promise<string> {
   ]);
   await done;
   if (projects.length > 1000 || tasks.length > 20000) throw new Error("Export supports up to 1,000 projects and 20,000 tasks.");
-  const data: WorkspaceBackup = { format: "tasktracker-backup", version: 1, exportedAt: new Date().toISOString(), projects, tasks };
+  const data: WorkspaceBackup = { format: "tasktracker-backup", version: 2, exportedAt: new Date().toISOString(), projects, tasks };
   const source = JSON.stringify(data, null, 2);
   if (new TextEncoder().encode(source).byteLength > backupLimit) throw new Error("Backup exceeds 5 MB.");
   return source;
@@ -194,7 +211,7 @@ export async function listDrafts(projectId: string, limit = 100): Promise<{ item
   });
 }
 export async function saveDraft(id: string, content: DraftContent, version: number): Promise<Draft> {
-  validStatus(content.data.status); validDate(content.data.dueDate);
+  validStatus(content.data.status); validDate(content.data.dueDate); validDescription(content.data.description ?? "");
   if (content.data.single.length > 200 || content.data.multiple.length > 20100) throw new Error("Draft is too long.");
   const db = await database(); const tx = db.transaction("drafts", "readwrite"); const done = committed(tx);
   const saved: Draft = { ...content, id, version: version + 1, updatedAt: new Date().toISOString() };
@@ -217,4 +234,66 @@ export async function discardDraft(receipt: DraftReceipt): Promise<void> {
   try { await finishDraft(tx, { id: receipt.id, version: receipt.version }); }
   catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
   await done; draftsChanged();
+}
+
+
+function ensureActive(project: Project) { if (project.state === "archived") throw new Error("Restore this project before changing its tasks."); }
+export async function getProject(id: string): Promise<Project | undefined> {
+  const db = await database(); return result(db.transaction("projects").objectStore("projects").get(id));
+}
+export async function updateProject(project: Project, name: string, state: "active" | "archived", draft?: DraftReceipt): Promise<void> {
+  const normalized = validName(name, 100);
+  if (!["active", "archived"].includes(state)) throw new Error("Invalid project state.");
+  const db = await database(); const tx = db.transaction(["projects", "drafts"], "readwrite"); const done = committed(tx);
+  try {
+    await finishDraft(tx, draft);
+    const store = tx.objectStore("projects"); const current: Project | undefined = await result(store.get(project.id));
+    if (!current || (current.version ?? 1) !== (project.version ?? 1)) throw new Error("Project changed in another tab. Reopen its settings.");
+    store.put({ ...current, name: normalized, state, version: (current.version ?? 1) + 1, updatedAt: new Date().toISOString() });
+  } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
+  await done; changed(); if (draft) draftsChanged();
+}
+export async function moveTasks(selected: Task[], projectId: string): Promise<void> {
+  if (!selected.length || selected.length > 100 || new Set(selected.map(task => task.id)).size !== selected.length) throw new Error("Select 1 to 100 different tasks.");
+  const db = await database(); const tx = db.transaction(["tasks", "projects"], "readwrite"); const done = committed(tx);
+  try {
+    const tasks = tx.objectStore("tasks"); const projects = tx.objectStore("projects"); const now = new Date().toISOString();
+    for (const task of selected) {
+      const current: Task | undefined = await result(tasks.get(task.id));
+      if (!current || current.version !== task.version) throw new Error("A task changed in another tab. Clear the selection and retry.");
+      const source: Project | undefined = await result(projects.get(current.projectId)); const target: Project | undefined = await result(projects.get(projectId));
+      if (!source || !target) throw new Error("Project not found."); ensureActive(source); ensureActive(target);
+      if (source.id === target.id) continue;
+      tasks.put({ ...current, projectId, version: current.version + 1 });
+      projects.put({ ...source, taskCount: source.taskCount - 1, doneCount: source.doneCount - (current.status === "Done" ? 1 : 0), updatedAt: now });
+      projects.put({ ...target, taskCount: target.taskCount + 1, doneCount: target.doneCount + (current.status === "Done" ? 1 : 0), updatedAt: now });
+    }
+  } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
+  await done; changed();
+}
+
+
+export type TaskCursor = { scope: string; createdAt: string; id: string };
+export async function queryTasks(projectId: string, status: TaskStatus | "all", search = "", due: DueFilter = "all", after?: TaskCursor): Promise<{ items: Task[]; more: boolean; cursor?: TaskCursor }> {
+  if (status !== "all") validStatus(status);
+  if (!["all", "today", "overdue", "upcoming", "undated"].includes(due)) throw new Error("Invalid due date filter.");
+  const needle = search.trim().toLowerCase(); if (needle.length > 200) throw new Error("Search is too long.");
+  const today = localToday(); const scope = JSON.stringify([projectId, status, needle, due, today]);
+  if (after && after.scope !== scope) throw new Error("Search changed. Start a new page.");
+  const prefix = status === "all" ? [projectId] : [projectId, status];
+  const upper = after ? [...prefix, after.createdAt, after.id] : [...prefix, []];
+  const db = await database(); const request = db.transaction("tasks").objectStore("tasks").index(status === "all" ? "project" : "status").openCursor(IDBKeyRange.bound(prefix, upper, false, Boolean(after)), "prev");
+  return new Promise((resolve, reject) => {
+    const items: Task[] = []; let scanned = 0; let cursorKey: TaskCursor | undefined;
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) { resolve({ items, more: false }); return; }
+      if (scanned >= 500 || items.length >= 50) { resolve({ items, more: true, cursor: cursorKey }); return; }
+      const task = cursor.value as Task; scanned++; cursorKey = { scope, createdAt: task.createdAt, id: task.id };
+      const matchesText = !needle || `${task.title}\n${task.description ?? ""}`.toLowerCase().includes(needle);
+      const matchesDate = due === "all" || (due === "undated" ? !task.dueDate : Boolean(task.dueDate) && (due === "today" ? task.dueDate === today : due === "overdue" ? task.dueDate! < today && task.status !== "Done" : task.dueDate! > today));
+      if (matchesText && matchesDate) items.push(task); cursor.continue();
+    };
+  });
 }

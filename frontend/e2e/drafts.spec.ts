@@ -72,6 +72,7 @@ test("editing drafts resume after filters and reload, then disappear on Save or 
   await page.getByRole("button", { name: "Edit task: Recovered edit", exact: true }).click();
   await editor.getByLabel("Task", { exact: true }).fill("Discard me");
   await editor.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(editor).not.toBeVisible();
   await page.reload();
   await expect(page.getByText(/^Saved drafts/)).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Edit task: Recovered edit", exact: true })).toBeVisible();

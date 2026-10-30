@@ -20,7 +20,7 @@ export function SavedDrafts({ projectId, label = "Saved drafts", onResume }: { p
   return <details className={styles.savedDrafts}><summary>{label} ({page.items.length}{page.more ? "+" : ""})</summary>
     {error && <p className="form-error" role="alert">{error}</p>}
     <ul>{page.items.map(draft => <li key={draft.id}>
-      <span>{draft.kind === "editor" ? "Edit" : draft.kind === "project" ? "Project" : "New tasks"} · {(draft.data[draft.data.mode] || draft.data.single || draft.data.multiple).slice(0, 70) || "Untitled"}</span>
+      <span>{draft.kind === "editor" ? "Edit" : draft.kind === "rename" ? "Rename" : draft.kind === "project" ? "Project" : "New tasks"} · {(draft.data[draft.data.mode] || draft.data.single || draft.data.multiple).slice(0, 70) || "Untitled"}</span>
       <div><button className={styles.textAction} disabled={working} onClick={() => onResume(draft)}>Resume</button>
         <button className={styles.textAction} disabled={working} onClick={() => {
           setWorking(true); setError("");

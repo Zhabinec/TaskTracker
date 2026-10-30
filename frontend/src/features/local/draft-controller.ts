@@ -39,7 +39,7 @@ export function openDraft(slot: string, initial: DraftContent, forcedId?: string
   const existing = controllers.get(id);
   // A saved/cancelled editor must start from the current task on the next opening.
   const canReload = existing && !existing.snapshot().dirty && !existing.snapshot().saving;
-  if (existing && !(canReload && (forcedId || (initial.kind === "editor" && !existing.snapshot().version)))) return existing;
+  if (existing && !(canReload && (forcedId || (["editor", "rename"].includes(initial.kind) && !existing.snapshot().version)))) return existing;
   const controller = new DraftController(id, slot, initial); controllers.set(id, controller); return controller;
 }
 
@@ -48,6 +48,7 @@ export class DraftController {
   private listeners = new Set<() => void>();
   private generation = 0;
   private writing?: Promise<void>;
+  private discarding?: Promise<void>;
   private loading: Promise<void>;
   constructor(id: string, private slot: string, initial: DraftContent) {
     this.state = { id, content: initial, ready: false, dirty: false, saving: false, version: 0, error: "" };
@@ -84,6 +85,7 @@ export class DraftController {
   async flush(): Promise<DraftReceipt | undefined> {
     await this.loading;
     if (!this.state.ready) throw new Error(this.state.error || "Draft storage unavailable.");
+    if (this.discarding) { await this.discarding; return this.flush(); }
     if (this.writing) { await this.writing; return this.flush(); }
     if (this.state.dirty) {
       this.writing = this.write();
@@ -105,13 +107,21 @@ export class DraftController {
         }
       }
     } catch (cause) { this.publish({ error: message(cause) }); throw cause; }
-    finally { this.publish({ saving: false }); }
+    finally { this.publish({ saving: Boolean(this.discarding) }); }
   }
   accept(content: DraftContent, receipt?: DraftReceipt) {
     if (!receipt?.remainder) this.renewId();
     this.publish({ content, dirty: false, version: receipt?.remainder ? receipt.version + 1 : 0, error: "" });
   }
   async discard(initial: DraftContent) {
+    if (this.discarding) return this.discarding;
+    this.publish({ saving: true });
+    this.discarding = this.discardContent(initial);
+    try { await this.discarding; }
+    catch (cause) { this.publish({ error: message(cause) }); throw cause; }
+    finally { this.discarding = undefined; this.publish({ saving: false }); }
+  }
+  private async discardContent(initial: DraftContent) {
     // Wait for any in-flight write, but allow explicitly discarding a failed local edit.
     await this.loading; await this.writing?.catch(() => {});
     if (this.state.version) await discardDraft({ id: this.state.id, version: this.state.version });

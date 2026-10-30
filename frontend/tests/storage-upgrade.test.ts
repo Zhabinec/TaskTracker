@@ -21,7 +21,7 @@ it("adds the draft store to v1 without replacing existing project and task data"
     tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error);
   });
   previous.close();
-  expect((await listProjects()).items).toEqual([project]);
+  expect((await listProjects()).items).toEqual([{ ...project, state: "active", version: 1 }]);
   expect((await listTasks("p", "Done")).items).toEqual([task]);
   expect(await readDraft("missing")).toBeUndefined();
 });

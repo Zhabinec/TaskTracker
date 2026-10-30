@@ -7,13 +7,16 @@ import { createTasks, editTask } from "./store";
 import { blankDraftData } from "./draft-contracts";
 import type { DraftContent } from "./draft-contracts";
 import { DraftFeedback, useDraft } from "./use-draft";
+import { ProjectPicker } from "./project-picker";
 import { StatusSelect } from "./status-select";
 import styles from "./local.module.css";
 
-export function TaskEditor({ task, draftId, onClose, onSaved }: { task: Task; draftId?: string; onClose: () => void; onSaved: (status: TaskStatus) => void }) {
-  const initial: DraftContent = { projectId: task.projectId, kind: "editor", task, data: { ...blankDraftData(), single: task.title, dueDate: task.dueDate ?? "", status: task.status } };
+export function TaskEditor({ task, draftId, onClose, onSaved }: { task: Task; draftId?: string; onClose: () => void; onSaved: (status: TaskStatus, projectId?: string) => void }) {
+  const initial: DraftContent = { projectId: task.projectId, kind: "editor", task, data: { ...blankDraftData(), single: task.title, dueDate: task.dueDate ?? "", status: task.status, description: task.description ?? "", destinationProjectId: task.projectId } };
   const draft = useDraft(`editor:${task.id}`, initial, draftId);
   const { single: title, dueDate, status } = draft.content.data;
+  const description = draft.content.data.description ?? draft.content.task?.description ?? "";
+  const destination = draft.content.data.destinationProjectId || task.projectId;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const submitting = useRef(false);
@@ -26,9 +29,9 @@ export function TaskEditor({ task, draftId, onClose, onSaved }: { task: Task; dr
     submitting.current = true; setSaving(true); setError("");
     try {
       const receipt = await draft.controller!.flush();
-      if (asNew) await createTasks(task.projectId, [title], dueDate, status, receipt);
-      else await editTask(draft.content.task!, title, dueDate, status, receipt);
-      draft.controller!.accept(initial); onSaved(status); onClose();
+      if (asNew) await createTasks(destination, [title], dueDate, status, receipt, description);
+      else await editTask(draft.content.task!, title, dueDate, status, receipt, { description, projectId: destination });
+      draft.controller!.accept(initial); onSaved(status, destination); onClose();
     }
     catch (cause) { if (cause instanceof Error && cause.message.startsWith("Draft changed")) draft.controller?.failed(cause); setError(cause instanceof Error ? cause.message : "Could not save this task."); }
     finally { submitting.current = false; setSaving(false); }
@@ -36,8 +39,10 @@ export function TaskEditor({ task, draftId, onClose, onSaved }: { task: Task; dr
 
   async function cancel() {
     if (submitting.current) return;
+    submitting.current = true; setSaving(true);
     try { await draft.controller?.discard(initial); onClose(); }
     catch (cause) { if (cause instanceof Error && cause.message.startsWith("Draft changed")) draft.controller?.failed(cause); setError(cause instanceof Error ? cause.message : "Could not discard draft."); }
+    finally { submitting.current = false; setSaving(false); }
   }
   return <form className={`${styles.taskForm} ${styles.editor}`} aria-label="Edit task" onSubmit={event => void save(event)} onKeyDown={event => {
     if (event.key === "Escape" && !submitting.current) { event.preventDefault(); event.stopPropagation(); void cancel(); }
@@ -48,6 +53,9 @@ export function TaskEditor({ task, draftId, onClose, onSaved }: { task: Task; dr
     <input id={`edit-due-${task.id}`} type="date" value={dueDate} onChange={event => draft.controller?.patch({ dueDate: event.target.value })} disabled={saving || !draft.ready} />
     <label htmlFor={`edit-status-${task.id}`}>Status</label>
     <StatusSelect id={`edit-status-${task.id}`} label="Task status" value={status} onChange={value => draft.controller?.patch({ status: value })} disabled={saving || !draft.ready} />
+    <label htmlFor={`description-${task.id}`}>Description</label>
+    <textarea id={`description-${task.id}`} rows={3} maxLength={5000} value={description} onChange={event => draft.controller?.patch({ description: event.target.value })} disabled={saving || !draft.ready} />
+    <span className={styles.fieldLabel}>Project</span><ProjectPicker label="Task project" value={destination} onChange={projectId => draft.controller?.patch({ destinationProjectId: projectId })} disabled={saving || !draft.ready} />
     <DraftFeedback draft={draft} />
     {error.includes("another tab") && <button type="button" className={styles.textAction} disabled={saving || !draft.ready} onClick={() => void save(undefined, true)}>Add as new task</button>}
     {error && <p id={`edit-error-${task.id}`} className="form-error" role="alert">{error}</p>}

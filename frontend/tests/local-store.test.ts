@@ -63,6 +63,13 @@ describe("local IndexedDB transactions", () => {
   });
 });
 
+it("opens the workspace even when the optional persistence permission never resolves", async () => {
+  vi.stubGlobal("navigator", { storage: { persist: () => new Promise<boolean>(() => {}) } });
+  await saveProfile("Non-blocking storage");
+  expect((await profile())?.name).toBe("Non-blocking storage");
+  vi.stubGlobal("navigator", { storage: { persist: async () => false } });
+});
+
 
 it("edits content without changing status or counters and rejects stale drafts", async () => {
   const project = await createProject("Editing");

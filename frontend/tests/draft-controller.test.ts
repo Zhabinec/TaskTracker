@@ -42,3 +42,14 @@ it("rotates consumed draft identities so stale writers cannot match a new versio
   await expect(saveDraft(receipt.id, { ...initial, data: { ...blankDraftData(), single: "Stale writer" } }, receipt.version)).rejects.toThrow("another tab");
   expect((await readDraft(draft.snapshot().id))?.data.single).toBe("Second generation");
 });
+
+it("flush waits for a pending discard before a reload or app update", async () => {
+  const initial = { projectId: "discard", kind: "composer" as const, data: blankDraftData() };
+  const draft = new DraftController(crypto.randomUUID(), "discard", initial);
+  await draft.flush(); draft.patch({ single: "Cancel this" }); const receipt = (await draft.flush())!;
+  const cancelled = draft.discard(initial);
+  expect(draft.snapshot().saving).toBe(true);
+  await Promise.all([cancelled, draft.flush()]);
+  expect(await readDraft(receipt.id)).toBeUndefined();
+  expect(draft.snapshot()).toMatchObject({ dirty: false, saving: false, version: 0 });
+});
