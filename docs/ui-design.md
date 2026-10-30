@@ -23,6 +23,13 @@ Use the existing CSS variables and CSS Modules; keep client interactions in smal
   settings visible. Multi-selection names the count and affects only selected rows.
 - Confirm irreversible deletion with the affected title/count and a safe Cancel.
 - Backup import previews counts and adds copies; it never replaces existing data.
+- Autosave creation and edit drafts locally. Show Draft saved only after commit;
+  keep incomplete single/batch text independently. Navigation must not discard it.
+- Resume keeps the original task version. Save cannot overwrite newer work; offer
+  Add as new task on a task conflict, or Keep my copy on a shared-draft conflict.
+- Cancel/Escape discards the saved edit as well as its in-memory fields. Discard is
+  explicit; reload and app updates preserve drafts. Storage failures retain text,
+  show feedback, and guard navigation until retry or deliberate discard.
 
 ## Sources and tools
 
