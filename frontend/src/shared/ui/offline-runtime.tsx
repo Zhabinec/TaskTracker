@@ -20,11 +20,17 @@ export function OfflineRuntime() {
         worker?.addEventListener("statechange", () => {
           if (worker.state === "installed" && active) {
             if (navigator.serviceWorker.controller) setWaiting(registration);
-            else setStatus("Offline ready");
           }
         });
       });
       await navigator.serviceWorker.ready;
+      if (!navigator.serviceWorker.controller) await new Promise<void>((resolve, reject) => {
+        const controlled = () => { if (navigator.serviceWorker.controller) { cleanup(); resolve(); } };
+        const timeout = setTimeout(() => { cleanup(); reject(new Error("Offline shell did not take control.")); }, 15000);
+        function cleanup() { clearTimeout(timeout); navigator.serviceWorker.removeEventListener("controllerchange", controlled); }
+        navigator.serviceWorker.addEventListener("controllerchange", controlled);
+        registration.active?.postMessage("CLAIM_CLIENTS"); controlled();
+      });
       if (active) { setStatus("Offline ready"); window.dispatchEvent(new Event("tasktracker:offline-ready")); }
     })().catch(() => { if (active) setStatus("Offline setup unavailable"); });
     return () => { active = false; navigator.serviceWorker.removeEventListener("controllerchange", change); };

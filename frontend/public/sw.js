@@ -28,6 +28,7 @@ self.addEventListener("activate", event => {
 });
 self.addEventListener("message", event => {
   if (event.data === "SKIP_WAITING") event.waitUntil(self.skipWaiting());
+  if (event.data === "CLAIM_CLIENTS") event.waitUntil(self.clients.claim());
 });
 self.addEventListener("fetch", event => {
   const request = event.request;
