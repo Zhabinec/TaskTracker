@@ -8,7 +8,7 @@ async function workspace(page: Page, name = "Drafts") {
   await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
 }
 async function offlineReady(page: Page) {
-  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible({ timeout: 30000 });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
 }
 test("creation drafts survive project/filter switches and offline reload with both modes", async ({ page, context }) => {

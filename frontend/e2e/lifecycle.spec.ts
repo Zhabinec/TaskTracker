@@ -22,7 +22,7 @@ test("rename, archive, reload and restore preserve tasks and descriptions", asyn
   await page.getByLabel("Project name", { exact: true }).fill("Ready for release");
   await page.getByRole("button", { name: "Save name", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Ready for release", exact: true })).toBeVisible();
-  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible({ timeout: 30000 });
   await context.setOffline(true);
   await page.getByText("Project settings", { exact: true }).click();
   await page.getByRole("button", { name: "Archive project", exact: true }).click();

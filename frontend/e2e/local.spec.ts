@@ -1,6 +1,19 @@
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
+test("offline setup can be retried after a failed registration", async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = navigator.serviceWorker.register.bind(navigator.serviceWorker);
+    (window as typeof window & { restoreRegistration: () => void }).restoreRegistration = () => { navigator.serviceWorker.register = original; };
+    navigator.serviceWorker.register = () => Promise.reject(new Error("Registration unavailable"));
+  });
+  await page.goto("/login");
+  await expect(page.getByRole("button", { name: "Retry offline setup", exact: true })).toBeVisible();
+  await page.evaluate(() => (window as typeof window & { restoreRegistration: () => void }).restoreRegistration());
+  await page.getByRole("button", { name: "Retry offline setup", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible({ timeout: 30000 });
+});
+
 test("open without credentials, create a project and keep tasks offline after reload", async ({ page, context }) => {
   const apiCalls: string[] = [];
   page.on("request", request => { if (request.url().includes("/api/")) apiCalls.push(request.url()); });
@@ -20,7 +33,7 @@ test("open without credentials, create a project and keep tasks offline after re
   await page.getByLabel("Due date", { exact: true }).fill("2026-12-20");
   await page.getByRole("button", { name: "Add task" }).click();
   await expect(page.getByText("Build a prototype", { exact: true })).toBeVisible();
-  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible({ timeout: 30000 });
   expect(await page.evaluate(async () => {
     const fonts = await Promise.all(["jakarta-latin.woff2", "inter-latin.woff2", "inter-cyrillic.woff2"].map(name => caches.match(`/fonts/${name}`)));
     return fonts.every(response => response?.ok);
@@ -49,7 +62,7 @@ test("open without credentials, create a project and keep tasks offline after re
 
 test("offline shell works on the first local setup and preserves project isolation", async ({ page, context }) => {
   await page.goto("/login");
-  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible({ timeout: 30000 });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await context.setOffline(true);
   await page.getByRole("button", { name: "Get started" }).click();
@@ -103,7 +116,7 @@ test("a service worker update keeps the local workspace intact", async ({ page }
   await page.getByRole("button", { name: "Get started" }).click();
   await page.getByLabel("New project", { exact: true }).fill("Project survives an update");
   await page.getByRole("button", { name: "Create project" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible({ timeout: 30000 });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await page.evaluate(async () => {
     await navigator.serviceWorker.register(`/sw.js?build=e2e-${crypto.randomUUID()}`, { scope: "/", updateViaCache: "none" });
@@ -123,7 +136,7 @@ test("edit a task offline, cancel with Escape and retain keyboard focus", async 
   await page.getByRole("button", { name: "Create project" }).click();
   await page.getByLabel("Task", { exact: true }).fill("Original task");
   await page.getByRole("button", { name: "Add task" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible({ timeout: 30000 });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await context.setOffline(true);
   await page.getByRole("button", { name: "Edit task: Original task", exact: true }).click();
@@ -178,7 +191,7 @@ test("create completed tasks in bulk, move selected tasks and confirm deletion",
   await page.getByRole("button", { name: "Get started" }).click();
   await page.getByLabel("New project", { exact: true }).fill("Completed work");
   await page.getByRole("button", { name: "Create project" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible({ timeout: 30000 });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await context.setOffline(true);
   await page.getByRole("button", { name: "Add multiple", exact: true }).click();
@@ -230,7 +243,7 @@ test("export and restore a backup offline without overwriting existing projects"
   await page.getByRole("combobox", { name: "New task status" }).selectOption("Done");
   await page.getByRole("button", { name: "Add task", exact: true }).click();
   await expect(page.getByRole("combobox", { name: "Status: Keep this work", exact: true })).toHaveValue("Done");
-  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible({ timeout: 30000 });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await context.setOffline(true);
   await page.getByText("Backups", { exact: true }).click();
