@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { editTask, changeTask, createProject, createTask, listProjects, listTasks, profile, saveProfile } from "../src/features/local/store";
+import { createTasks, changeTasks, editTask, changeTask, createProject, createTask, listProjects, listTasks, profile, saveProfile } from "../src/features/local/store";
 
 beforeAll(() => {
   vi.stubGlobal("window", Object.assign(new EventTarget(), { indexedDB }));
@@ -76,4 +76,60 @@ it("edits content without changing status or counters and rejects stale drafts",
   await expect(editTask(updated, "Invalid", "2026-02-30")).rejects.toThrow("due date");
   expect((await listTasks(project.id, "all")).items[0]).toEqual(updated);
   expect((await listProjects()).items.find(value => value.id === project.id)).toMatchObject({ taskCount: 1, doneCount: 1 });
+});
+
+
+it("creates already completed tasks in one batch and keeps exact counters", async () => {
+  const project = await createProject("Completed work");
+  await createTasks(project.id, ["First", "Second", "Third"], "2026-12-20", "Done");
+  const tasks = (await listTasks(project.id, "Done")).items;
+  expect(tasks).toHaveLength(3);
+  expect(tasks.every(task => task.completedAt && task.status === "Done")).toBe(true);
+  expect((await listProjects()).items.find(value => value.id === project.id)).toMatchObject({ taskCount: 3, doneCount: 3 });
+  await changeTasks(tasks, "Todo");
+  const reopened = (await listTasks(project.id, "Todo")).items;
+  expect(reopened.every(task => task.completedAt === null)).toBe(true);
+  await changeTasks(reopened, "InProgress");
+  expect((await listTasks(project.id, "InProgress")).items).toHaveLength(3);
+  expect((await listProjects()).items.find(value => value.id === project.id)).toMatchObject({ taskCount: 3, doneCount: 0 });
+});
+
+it("rejects invalid batches before inserting any tasks", async () => {
+  const project = await createProject("Invalid batches");
+  await expect(createTasks(project.id, ["Valid", " "], "", "Done")).rejects.toThrow("characters");
+  await expect(createTasks(project.id, [], "", "Todo")).rejects.toThrow("1 to 100");
+  await expect(createTasks(project.id, Array(101).fill("Task"), "", "Todo")).rejects.toThrow("1 to 100");
+  await expect(createTasks(project.id, ["Task"], "", "Invalid" as never)).rejects.toThrow("valid status");
+  expect((await listTasks(project.id, "all")).items).toHaveLength(0);
+  expect((await listProjects()).items.find(value => value.id === project.id)).toMatchObject({ taskCount: 0, doneCount: 0 });
+});
+
+it("rolls back the entire bulk action if any selected task has changed", async () => {
+  const project = await createProject("Atomic bulk");
+  await createTasks(project.id, ["One", "Two"], "", "Todo");
+  const tasks = (await listTasks(project.id, "all")).items;
+  await changeTask(tasks[1], "Done");
+  await expect(changeTasks(tasks, "delete")).rejects.toThrow("another tab");
+  expect((await listTasks(project.id, "all")).items).toHaveLength(2);
+  expect((await listProjects()).items.find(value => value.id === project.id)).toMatchObject({ taskCount: 2, doneCount: 1 });
+  await expect(changeTasks([tasks[0], tasks[0]], "Done")).rejects.toThrow("different tasks");
+  const current = (await listTasks(project.id, "all")).items;
+  await changeTasks(current, "delete");
+  expect((await listProjects()).items.find(value => value.id === project.id)).toMatchObject({ taskCount: 0, doneCount: 0 });
+});
+
+it("can edit directly into Done and reopen without inflating progress", async () => {
+  const project = await createProject("Explicit edit status");
+  await createTask(project.id, "Task", "");
+  let task = (await listTasks(project.id, "all")).items[0];
+  await editTask(task, task.title, "", "Done");
+  task = (await listTasks(project.id, "all")).items[0];
+  const completedAt = task.completedAt;
+  await editTask(task, "Renamed", "", "Done");
+  task = (await listTasks(project.id, "all")).items[0];
+  expect(task.completedAt).toBe(completedAt);
+  expect((await listProjects()).items.find(value => value.id === project.id)?.doneCount).toBe(1);
+  await editTask(task, task.title, "", "InProgress");
+  expect((await listTasks(project.id, "all")).items[0].completedAt).toBeNull();
+  expect((await listProjects()).items.find(value => value.id === project.id)?.doneCount).toBe(0);
 });

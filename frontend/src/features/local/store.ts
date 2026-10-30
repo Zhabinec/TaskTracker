@@ -1,4 +1,4 @@
-import { validDate, validName } from "./contracts";
+import { validDate, validName, validStatus } from "./contracts";
 import type { LocalProfile, Project, Task, TaskPage, TaskStatus } from "./contracts";
 
 let opened: Promise<IDBDatabase> | undefined;
@@ -87,41 +87,54 @@ export async function listTasks(projectId: string, status: TaskStatus | "all", l
     };
   });
 }
-export async function createTask(projectId: string, title: string, dueDate: string): Promise<void> {
-  const normalized = validName(title, 200); const date = validDate(dueDate);
+export async function createTask(projectId: string, title: string, dueDate: string, status: TaskStatus = "Todo"): Promise<void> {
+  await createTasks(projectId, [title], dueDate, status);
+}
+export async function createTasks(projectId: string, titles: string[], dueDate: string, status: TaskStatus): Promise<void> {
+  if (!titles.length || titles.length > 100) throw new Error("Add 1 to 100 tasks at a time.");
+  const normalized = titles.map(title => validName(title, 200)); const date = validDate(dueDate); validStatus(status);
   const db = await database(); const tx = db.transaction(["tasks", "projects"], "readwrite"); const done = committed(tx);
   try {
     const projects = tx.objectStore("projects"); const project: Project | undefined = await result(projects.get(projectId));
     if (!project) throw new Error("Project not found. Refresh the list.");
-    const now = new Date().toISOString();
-    tx.objectStore("tasks").add({ id: crypto.randomUUID(), projectId, title: normalized, dueDate: date, status: "Todo", createdAt: now, completedAt: null, version: 1 } satisfies Task);
-    projects.put({ ...project, taskCount: project.taskCount + 1, updatedAt: now });
+    const now = new Date().toISOString(); const tasks = tx.objectStore("tasks");
+    for (const title of normalized) tasks.add({ id: crypto.randomUUID(), projectId, title, dueDate: date, status, createdAt: now, completedAt: status === "Done" ? now : null, version: 1 } satisfies Task);
+    projects.put({ ...project, taskCount: project.taskCount + normalized.length, doneCount: project.doneCount + (status === "Done" ? normalized.length : 0), updatedAt: now });
   } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
   await done; changed();
 }
-export async function editTask(task: Task, title: string, dueDate: string): Promise<void> {
-  const normalized = validName(title, 200); const date = validDate(dueDate);
+export async function editTask(task: Task, title: string, dueDate: string, status: TaskStatus = task.status): Promise<void> {
+  const normalized = validName(title, 200); const date = validDate(dueDate); validStatus(status);
   const db = await database(); const tx = db.transaction(["tasks", "projects"], "readwrite"); const done = committed(tx);
   try {
     const tasks = tx.objectStore("tasks"); const current: Task | undefined = await result(tasks.get(task.id));
     if (!current || current.version !== task.version) throw new Error("This task changed in another tab. Cancel and reopen it to retry.");
     const projects = tx.objectStore("projects"); const project: Project | undefined = await result(projects.get(current.projectId));
     if (!project) throw new Error("Project not found.");
-    tasks.put({ ...current, title: normalized, dueDate: date, version: current.version + 1 });
-    projects.put({ ...project, updatedAt: new Date().toISOString() });
+    tasks.put({ ...current, title: normalized, dueDate: date, status, completedAt: status === "Done" ? current.completedAt ?? new Date().toISOString() : null, version: current.version + 1 });
+    projects.put({ ...project, doneCount: project.doneCount - (current.status === "Done" ? 1 : 0) + (status === "Done" ? 1 : 0), updatedAt: new Date().toISOString() });
   } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
   await done; changed();
 }
 export async function changeTask(task: Task, status: TaskStatus | "delete"): Promise<void> {
+  await changeTasks([task], status);
+}
+export async function changeTasks(selected: Task[], status: TaskStatus | "delete"): Promise<void> {
+  if (!selected.length || selected.length > 100 || new Set(selected.map(task => task.id)).size !== selected.length) throw new Error("Select 1 to 100 different tasks.");
+  if (status !== "delete") validStatus(status);
   const db = await database(); const tx = db.transaction(["tasks", "projects"], "readwrite"); const done = committed(tx);
   try {
-    const tasks = tx.objectStore("tasks"); const current: Task | undefined = await result(tasks.get(task.id));
-    if (!current || current.version !== task.version) throw new Error("This task changed in another tab. Please retry.");
-    const projects = tx.objectStore("projects"); const project: Project | undefined = await result(projects.get(current.projectId));
-    if (!project) throw new Error("Project not found.");
-    if (status === "delete") tasks.delete(task.id);
-    else tasks.put({ ...current, status, completedAt: status === "Done" ? current.completedAt ?? new Date().toISOString() : null, version: current.version + 1 });
-    projects.put({ ...project, taskCount: project.taskCount - (status === "delete" ? 1 : 0), doneCount: project.doneCount - (current.status === "Done" ? 1 : 0) + (status === "Done" ? 1 : 0), updatedAt: new Date().toISOString() });
+    const tasks = tx.objectStore("tasks"); const projects = tx.objectStore("projects");
+    const now = new Date().toISOString();
+    for (const task of selected) {
+      const current: Task | undefined = await result(tasks.get(task.id));
+      if (!current || current.version !== task.version) throw new Error("A task changed in another tab. Clear the selection and retry.");
+      const project: Project | undefined = await result(projects.get(current.projectId));
+      if (!project) throw new Error("Project not found.");
+      if (status === "delete") tasks.delete(task.id);
+      else tasks.put({ ...current, status, completedAt: status === "Done" ? current.completedAt ?? now : null, version: current.version + 1 });
+      projects.put({ ...project, taskCount: project.taskCount - (status === "delete" ? 1 : 0), doneCount: project.doneCount - (current.status === "Done" ? 1 : 0) + (status === "Done" ? 1 : 0), updatedAt: now });
+    }
   } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
   await done; changed();
 }

@@ -2,11 +2,12 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import type { LocalProfile, Project, Task, TaskStatus } from "./contracts";
-import { changeTask, createProject, createTask, listProjects, listTasks, profile, subscribeChanges } from "./store";
+import { createProject, listProjects, listTasks, profile, subscribeChanges } from "./store";
 import styles from "./local.module.css";
-import { TaskEditor } from "./task-editor";
+import { TaskList } from "./task-list";
+import { TaskComposer } from "./task-composer";
+import { statusLabels as labels } from "./contracts";
 
-const labels: Record<TaskStatus, string> = { Todo: "To do", InProgress: "In progress", Done: "Done" };
 function friendlyError(cause: unknown) { return cause instanceof Error ? cause.message : "Something went wrong. Please retry."; }
 
 export function LocalWorkspace() {
@@ -15,10 +16,9 @@ export function LocalWorkspace() {
   const [projectLimit, setProjectLimit] = useState(50); const [taskLimit, setTaskLimit] = useState(50);
   const [moreProjects, setMoreProjects] = useState(false); const [revision, setRevision] = useState(0);
   const [taskPage, setTaskPage] = useState<{ key: string; items: Task[]; more: boolean }>({ key: "", items: [], more: false });
-  const [projectName, setProjectName] = useState(""); const [title, setTitle] = useState(""); const [dueDate, setDueDate] = useState("");
+  const [projectName, setProjectName] = useState("");
   const [working, setWorking] = useState(false); const [error, setError] = useState("");
-  const [editing, setEditing] = useState<Task>();
-  function closeEditor() { const id = editing?.id; setEditing(undefined); requestAnimationFrame(() => document.getElementById(`edit-task-${id}`)?.focus()); }
+  const [notice, setNotice] = useState<{ text: string; status?: TaskStatus }>();
   const key = `${selected}:${filter}:${taskLimit}`;
   useEffect(() => subscribeChanges(() => setRevision(value => value + 1)), []);
   useEffect(() => {
@@ -47,8 +47,8 @@ export function LocalWorkspace() {
   function addProject(event: FormEvent) {
     event.preventDefault(); void run(async () => { const value = await createProject(projectName); setProjectName(""); setSelected(value.id); setFilter("all"); setTaskLimit(50); });
   }
-  function addTask(event: FormEvent) {
-    event.preventDefault(); void run(async () => { await createTask(selected, title, dueDate); setTitle(""); setDueDate(""); setFilter("all"); });
+  function taskChanged(count: number, status: TaskStatus | "delete") {
+    setNotice({ text: status === "delete" ? `${count} ${count === 1 ? "task" : "tasks"} deleted` : `${count} ${count === 1 ? "task" : "tasks"} saved in ${labels[status]}`, status: status === "delete" ? undefined : status });
   }
   if (!owner) return <main className={styles.shell}><a className="brand" href="/login"><span className="brand-mark" aria-hidden="true">✳</span> TaskTracker</a>
     <div className={`glass ${styles.empty}`} role="status">{error || "Loading…"}</div></main>;
@@ -65,25 +65,20 @@ export function LocalWorkspace() {
     {error && <p className="form-error" role="alert">{error}</p>}
     <div className={styles.layout}>
       <aside className={`glass ${styles.sidebar}`} aria-label="Projects"><div className={styles.sectionLabel}><h2>My projects</h2><span>{projects.length}{moreProjects ? "+" : ""}</span></div>
-        <div className={styles.projectList}>{projects.map(value => <button key={value.id} className={styles.project} aria-pressed={selected === value.id} onClick={() => { setEditing(undefined); setSelected(value.id); setTaskLimit(50); setFilter("all"); }}>
+        <div className={styles.projectList}>{projects.map(value => <button key={value.id} className={styles.project} aria-pressed={selected === value.id} onClick={() => { setNotice(undefined); setSelected(value.id); setTaskLimit(50); setFilter("all"); }}>
           <span className={styles.dot} data-color={value.color} aria-hidden="true" /><span className={styles.projectName}>{value.name}</span><span className={styles.projectCount}>{value.taskCount}</span>
         </button>)}</div>
         {moreProjects && <button className={`secondary ${styles.loadMore}`} onClick={() => setProjectLimit(value => value + 50)}>More projects</button>}
         <form className={styles.inlineForm} onSubmit={addProject}><label htmlFor="project-name">New project</label><input id="project-name" placeholder="Name" value={projectName} onChange={event => setProjectName(event.target.value)} maxLength={100} required disabled={working} /><button className="secondary" disabled={working} type="submit" aria-label="Create project" title="Create project">＋</button></form>
       </aside>
       <section className={`glass ${styles.board}`} aria-labelledby="board-title">
-        <div className={styles.boardHeading}><h2 id="board-title">{project?.name ?? "Tasks"}</h2>{project && <span className={styles.countBadge}>{total}</span>}</div>
+        <div className={styles.boardHeading}><h2 id="board-title" tabIndex={-1}>{project?.name ?? "Tasks"}</h2>{project && <span className={styles.countBadge}>{total}</span>}</div>
         {project ? <>
-          <div className={styles.tabs} aria-label="Filter tasks">{(["all", "Todo", "InProgress", "Done"] as const).map(status => <button key={status} aria-pressed={filter === status} onClick={() => { setEditing(undefined); setFilter(status); setTaskLimit(50); }}>{status === "all" ? "All" : labels[status]}</button>)}</div>
-          {!tasksReady ? <p role="status" className={styles.empty}>Loading tasks…</p> : taskPage.items.length ? <ul className={styles.taskList}>{taskPage.items.map(task => <li key={task.id} className={styles.task}>
-            <button className={styles.taskStatus} data-status={task.status} aria-label={`${task.status === "Todo" ? "Start" : task.status === "InProgress" ? "Complete" : "Reopen"}: ${task.title}`} disabled={working || Boolean(editing)}
-              onClick={() => void run(() => changeTask(task, task.status === "Todo" ? "InProgress" : task.status === "InProgress" ? "Done" : "Todo"))}>{task.status === "Done" ? "✓" : task.status === "InProgress" ? "•" : ""}</button>
-            <div className={styles.taskContent}>{editing?.id === task.id ? <TaskEditor task={editing} onClose={closeEditor} /> : <><button className={`${styles.taskTitle} ${styles.editTask} ${task.status === "Done" ? styles.done : ""}`} id={`edit-task-${task.id}`} aria-label={`Edit task: ${task.title}`} disabled={working || Boolean(editing)} onClick={() => setEditing(task)}>{task.title}</button><div className={styles.taskMeta}><span>{labels[task.status]}</span>{task.dueDate && <time dateTime={task.dueDate}>{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(`${task.dueDate}T12:00:00`))}</time>}</div></>}</div>
-            <button className={styles.delete} disabled={working || Boolean(editing)} aria-label={`Delete task: ${task.title}`} onClick={() => void run(() => changeTask(task, "delete"))}>×</button>
-          </li>)}</ul> : <div className={styles.empty}><span className={styles.emptyIcon} aria-hidden="true">✧</span><strong>No tasks yet</strong></div>}
+          <div className={styles.tabs} aria-label="Filter tasks">{(["all", "Todo", "InProgress", "Done"] as const).map(status => <button key={status} aria-pressed={filter === status} onClick={() => { setNotice(undefined); setFilter(status); setTaskLimit(50); }}>{status === "all" ? "All" : labels[status]}</button>)}</div>
+          {notice && <div className={styles.actionNotice} role="status"><span>{notice.text}</span>{notice.status && filter !== "all" && filter !== notice.status && <button className={styles.textAction} onClick={() => { setFilter(notice.status!); setTaskLimit(50); }}>View {labels[notice.status]}</button>}<button className={styles.textAction} aria-label="Dismiss task notice" onClick={() => setNotice(undefined)}>×</button></div>}
+          {!tasksReady ? <p role="status" className={styles.empty}>Loading tasks…</p> : taskPage.items.length ? <TaskList key={`${selected}:${filter}`} tasks={taskPage.items} onChanged={taskChanged} /> : <div className={styles.empty}><span className={styles.emptyIcon} aria-hidden="true">✧</span><strong>{filter === "all" ? "No tasks yet" : `No ${labels[filter].toLowerCase()} tasks`}</strong></div>}
           {tasksReady && taskPage.more && <button className={`secondary ${styles.loadMore}`} onClick={() => setTaskLimit(value => value + 50)}>More tasks</button>}
-          <form className={styles.taskForm} onSubmit={addTask}><label htmlFor="task-title">Task</label><input id="task-title" placeholder="What needs doing?" maxLength={200} value={title} onChange={event => setTitle(event.target.value)} required disabled={working} />
-            <div className={styles.taskFormBottom}><label htmlFor="task-due">Due date</label><input id="task-due" type="date" value={dueDate} onChange={event => setDueDate(event.target.value)} disabled={working} /><button className="primary" disabled={working} type="submit" aria-label="Add task">＋ Add</button></div></form>
+          <TaskComposer key={selected} projectId={selected} onAdded={(count, status) => { setFilter("all"); setTaskLimit(50); taskChanged(count, status); }} />
         </> : <div className={styles.empty}><span className={styles.emptyIcon} aria-hidden="true">✳</span><strong>Create a project</strong></div>}
       </section>
       <aside className={styles.right}><section className={`glass ${styles.summary}`} aria-labelledby="progress-title"><h2 id="progress-title">Progress</h2>

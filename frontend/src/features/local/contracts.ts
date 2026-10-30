@@ -18,3 +18,10 @@ export function validDate(value: string): string | null {
   }
   return value;
 }
+
+export const taskStatuses: readonly TaskStatus[] = ["Todo", "InProgress", "Done"];
+export const statusLabels: Record<TaskStatus, string> = { Todo: "To do", InProgress: "In progress", Done: "Done" };
+export function validStatus(value: string): TaskStatus {
+  if (!taskStatuses.includes(value as TaskStatus)) throw new Error("Choose a valid status.");
+  return value as TaskStatus;
+}
