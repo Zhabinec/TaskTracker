@@ -50,6 +50,14 @@ Open the HTTPS address, create the local space and wait for Offline ready. Insta
 from the browser's Add to Home Screen / Install action. Confirm offline reload and
 backup import/export on the physical phone before accepting the public release.
 
+Online work can start while the shell is preparing. First-install failure is
+retried once within the same 25-second startup budget; persistent failure shows
+Retry offline setup. Readiness requires an activated worker controlling the page,
+not just a registration or a partially populated cache. Each installation has an
+isolated cache and verifies every required page/asset before activation. Navigation
+reuses a same-build worker rather than creating another installation. A waiting app update still
+requires explicit Update and a successful draft flush.
+
 Each origin/browser has its own data. Moving from localhost to the HTTPS hostname
 requires Export backup on the old origin and Import backup on the new one. Import
 adds independent copies; it does not synchronize devices. Unfinished drafts are

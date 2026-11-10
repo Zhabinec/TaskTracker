@@ -1,5 +1,7 @@
-const build = new URL(self.location.href).searchParams.get("build") || "local-v1";
-const CACHE = `tasktracker-shell-${build}`;
+const parameters = new URL(self.location.href).searchParams;
+const build = parameters.get("build") || "local-v1";
+const installation = parameters.get("installation");
+const CACHE = `tasktracker-shell-${build}${installation ? `-${installation}` : ""}`;
 const pages = ["/login", "/projects"];
 
 self.addEventListener("install", event => {
@@ -17,6 +19,9 @@ self.addEventListener("install", event => {
       }
     }
     await cache.addAll([...assets]);
+    for (const url of [...pages, ...assets]) {
+      if (!await cache.match(url)) throw new Error(`Incomplete offline shell: ${url}`);
+    }
     if (!self.registration.active) await self.skipWaiting();
   })());
 });

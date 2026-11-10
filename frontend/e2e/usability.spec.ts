@@ -108,6 +108,7 @@ test("mobile management collapses without losing drafts and keeps progress avail
   await expect(page.getByLabel("New project", { exact: true })).toHaveValue("Unfinished project");
   await page.getByLabel("New project", { exact: true }).fill("Second phone project");
   await page.getByRole("button", { name: "Create project", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Second phone project", exact: true })).toBeVisible();
   await page.getByRole("combobox", { name: "Current project", exact: true }).selectOption({ label: "Phone" });
   await expect(task).toBeVisible();
   await manage.click(); await page.getByText("Backups", { exact: true }).click();

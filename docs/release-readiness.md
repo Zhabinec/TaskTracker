@@ -50,6 +50,10 @@ create additional copies; this is not a merge or automatic synchronization.
 - Pinned, repeatable Chromium/Firefox/WebKit container checks; updated CI matrix,
   production dependency audit and direct dependency/font notice inventory.
 - Validated optional Caddy HTTPS configuration and [release runbook](release.md).
+- Offline startup observes actual worker activation and page control. A failed
+  first installation gets one bounded automatic retry; persistent failure exposes
+  Retry. Fault-injection scenarios cover incomplete precache and navigation during
+  installation, without making the user wait on the entry page before starting.
 
 ## Required acceptance outside this checkout
 

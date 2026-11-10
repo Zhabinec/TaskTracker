@@ -1,6 +1,13 @@
 import { changeTaskStatus } from "./task-actions";
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import { pwaDiagnostics } from "./pwa-diagnostics";
+
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status !== testInfo.expectedStatus && !page.isClosed()) {
+    console.log("Offline diagnostics:", JSON.stringify(await pwaDiagnostics(page)));
+  }
+});
 
 test("an installed event without a waiting worker never advertises an update", async ({ page }) => {
   await page.goto("/login");
@@ -149,9 +156,6 @@ test("edit a task offline, cancel with Escape and retain keyboard focus", async 
   await page.setViewportSize({ width: 375, height: 812 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/login");
-  // This scenario exercises offline editing. Prepare its shell prerequisite before
-  // navigation; first-install and retry behavior have their own scenarios above.
-  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible({ timeout: 30000 });
   await page.getByRole("button", { name: "Get started" }).click();
   await page.getByLabel("New project", { exact: true }).fill("Editing");
   await page.getByRole("button", { name: "Create project" }).click();
