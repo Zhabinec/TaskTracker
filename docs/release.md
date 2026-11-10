@@ -28,8 +28,8 @@ To run only a browser matrix against the existing stack:
 ```
 
 Native `npm run test:e2e` remains available after installing Playwright browsers.
-CI installs all three browser engines; remote CI has not run because no remote is
-configured for this checkout.
+CI installs all three browser engines. A GitHub remote is configured; its latest
+workflow results were not checked in the November 10 review.
 
 ## Install on a phone with HTTPS
 

@@ -58,8 +58,9 @@ create additional copies; this is not a merge or automatic synchronization.
    rejects writes.
 2. A real DNS hostname/server, working public TLS, phone installation and rehearsal
    of the production update/rollback procedure with existing data.
-3. Connect a Git remote and run the prepared CI jobs there. No remote is configured;
-   local verification does not establish remote CI success.
+3. Verify the prepared CI jobs on the configured GitHub remote. The remote is
+   connected; its latest workflow results were not checked in the November 10 review.
+   Local verification does not establish remote CI success.
 
 The candidate can be tested locally now. Public 1.0 requires these environmental
 checks; cloud Workspace/sync remains a separately scoped future release.
