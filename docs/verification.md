@@ -236,3 +236,29 @@ CI обновлён: optional cloud stack проверяется отдельн�
   получение управления, офлайн-перезагрузка и все предыдущие сценарии данных/UI.
   В mobile-management тесте уточнено ожидание завершения создания второго проекта
   перед его переключением; итоговый прогон выполнен целиком с окончательным кодом.
+
+## 2026-11-11 — Render и Android release acceptance
+
+- Выбраны Render и физический Android. Добавлены Docker Blueprint с health check
+  `/health/ready`, деплоем после CI и Free только для приёмки; для публичного
+  production требуется отдельно выбранный платный compute. Ни сервис, ни платный
+  тариф в Render пока не создавались: подключение аккаунта не подтверждено.
+- Blueprint проверен по официальной `https://render.com/schema/render.yaml.json`
+  через установленный транзитивный Ajv 2020, без новых зависимостей. URI format
+  не проверялся валидатором; Blueprint не содержит полей с этим format.
+- Optional Identity origin принимает `RENDER_EXTERNAL_URL` только при `RENDER=true`;
+  явный APP_ORIGIN имеет приоритет. Проверки exact origin, HTTPS и Secure cookies
+  сохранены. Lint, TypeScript и 57 unit tests в 11 файлах прошли, включая 7 новых
+  проверок deployment origin. IndexedDB и границы облачных сервисов не менялись.
+- Production Docker image собран; временный контейнер с PORT=10000 и Render env
+  успешно ответил `/health/ready`. Контейнер остановлен после проверки.
+- Новый Test-Deployment.ps1 прошёл на локальном production: health, manifest,
+  HTML оболочки, worker/build no-store, иконки и три font assets. Проверены отказы
+  для public HTTP, URL с path/query/credentials. Локальная проверка не доказывает TLS.
+  Скрипт добавлен в GitHub containers job для последующих запусков.
+- Целевой production E2E: создание проекта/задач и reload без сети — 3 passed
+  (36.8s), Chromium/Firefox/WebKit, retries=0. Полная предыдущая матрица 93 passed
+  сохранена выше; повторять её локально для deployment config не требовалось.
+- Документирован реальный Android install/offline/backup/text-scale checklist и
+  update/rollback rehearsal с build IDs и сохранёнными данными. Публичный TLS,
+  физическая приёмка и откат остаются pending до выполнения в окружении Render.

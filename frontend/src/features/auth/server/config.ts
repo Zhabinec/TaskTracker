@@ -1,7 +1,9 @@
 import "server-only";
 
 export function authConfig() {
-  const configured = process.env.APP_ORIGIN;
+  // Render supplies its canonical HTTPS URL; never trust a request Host header.
+  // APP_ORIGIN remains authoritative for custom domains and self-hosting.
+  const configured = process.env.APP_ORIGIN ?? (process.env.RENDER === "true" ? process.env.RENDER_EXTERNAL_URL : undefined);
   if (!configured && process.env.NODE_ENV === "production") throw new Error("APP_ORIGIN is required");
   const origin = configured ?? "http://localhost:3000";
   const url = new URL(origin);

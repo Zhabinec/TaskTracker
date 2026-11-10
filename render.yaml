@@ -1,0 +1,17 @@
+# Android acceptance environment. Select paid compute before public production.
+# Connect this Blueprint to the GitHub repo so checksPass can observe CI.
+services:
+  - type: web
+    name: tasktracker
+    runtime: docker
+    plan: free
+    branch: master
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    healthCheckPath: /health/ready
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"

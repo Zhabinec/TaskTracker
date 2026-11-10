@@ -33,6 +33,11 @@ workflow results were not checked in the November 10 review.
 
 ## Install on a phone with HTTPS
 
+The selected platform is Render; the first physical target is Android. Follow
+[the Render deployment and Android checklist](render-release.md). The Blueprint
+provisions the local frontend with CI-gated deployment and health checks. The
+Caddy setup below remains an optional self-hosted alternative.
+
 On a host reachable from the phone, point a DNS hostname at the host and make
 TCP ports 80/443 reachable (UDP 443 is optional for HTTP/3). Set `APP_DOMAIN` to
 that hostname, without a scheme or path. Keep the existing generated `.env`.
@@ -77,8 +82,8 @@ Do not delete browser storage or Docker volumes as an update step.
 
 ## Public release acceptance
 
-Software checks are recorded in [verification.md](verification.md). Physical iOS
-and Android installation, touch/accessibility text scaling, public TLS and actual
+Software checks are recorded in [verification.md](verification.md). Physical
+Android installation, touch/accessibility text scaling, public TLS and actual
 deployment upgrade/rollback require their respective environments. Those checks
 are not replaced by desktop browser emulation. Until they are signed off, keep the
 `rc` version designation. Direct dependency/font notices: [dependency-notices.md](dependency-notices.md).

@@ -57,14 +57,16 @@ create additional copies; this is not a merge or automatic synchronization.
 
 ## Required acceptance outside this checkout
 
-1. Physical iOS/Android installed PWA lifecycle, touch targets and accessibility text
+1. Physical Android installed PWA lifecycle, touch targets and accessibility text
    scaling. Recovery cannot be promised after forced OS termination while storage
    rejects writes.
-2. A real DNS hostname/server, working public TLS, phone installation and rehearsal
-   of the production update/rollback procedure with existing data.
+2. A live Render deployment with working public TLS, phone installation and rehearsal
+   of the production update/rollback procedure with existing data. The Docker
+   Blueprint and [Android/Render runbook](render-release.md) are prepared; account
+   connection, actual deployment and physical acceptance remain pending.
 3. Verify the prepared CI jobs on the configured GitHub remote. The remote is
-   connected; its latest workflow results were not checked in the November 10 review.
-   Local verification does not establish remote CI success.
+   connected and earlier successful runs exist. Verify the exact release SHA;
+   unrelated runs and local verification do not establish its CI success.
 
 The candidate can be tested locally now. Public 1.0 requires these environmental
 checks; cloud Workspace/sync remains a separately scoped future release.

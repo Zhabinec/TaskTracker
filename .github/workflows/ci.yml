@@ -97,6 +97,9 @@ jobs:
           curl --fail http://127.0.0.1:3000/
           curl --fail http://127.0.0.1:8000/health/ready
           curl --fail http://127.0.0.1:3000/health/ready
+      - name: Verify deployment shell and PWA resources
+        shell: pwsh
+        run: ./scripts/Test-Deployment.ps1 -Origin http://127.0.0.1:3000
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
