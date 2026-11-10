@@ -3,6 +3,10 @@ export type LocalProfile = { key: "device"; id: string; name: string; createdAt:
 export type Project = { id: string; name: string; color: string; taskCount: number; doneCount: number; createdAt: string; updatedAt: string; state?: "active" | "archived"; version?: number };
 export type Task = { id: string; projectId: string; title: string; status: TaskStatus; dueDate: string | null; createdAt: string; completedAt: string | null; description?: string; version: number };
 export type TaskPage = { items: Task[]; more: boolean };
+export type TaskChange =
+  | { kind: "saved"; count: number; status: TaskStatus; projectId?: string }
+  | { kind: "moved"; count: number; projectId: string }
+  | { kind: "deleted"; count: number };
 
 export function validName(value: string, maximum: number): string {
   const name = value.trim();

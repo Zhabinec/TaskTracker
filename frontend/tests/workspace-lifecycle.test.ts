@@ -23,7 +23,7 @@ it("moves tasks and status changes with exact counters and preserves completed t
   const source = await createProject("Source"); const target = await createProject("Target");
   await createTasks(source.id, ["One", "Two"], "", "Done");
   const original = (await listTasks(source.id, "all")).items;
-  await moveTasks(original, target.id);
+  expect(await moveTasks(original, target.id)).toBe(2);
   expect(await getProject(source.id)).toMatchObject({ taskCount: 0, doneCount: 0 });
   expect(await getProject(target.id)).toMatchObject({ taskCount: 2, doneCount: 2 });
   const moved = (await listTasks(target.id, "all")).items;
@@ -32,6 +32,18 @@ it("moves tasks and status changes with exact counters and preserves completed t
   expect(await getProject(source.id)).toMatchObject({ taskCount: 1, doneCount: 0 });
   expect(await getProject(target.id)).toMatchObject({ taskCount: 1, doneCount: 1 });
   expect((await listTasks(source.id, "all")).items[0]).toMatchObject({ title: "With notes", description: "Line one\nLine two", completedAt: null });
+});
+it("reports only committed moves and leaves same-project tasks untouched", async () => {
+  const source = await createProject("Count source"); const target = await createProject("Count target");
+  await createTask(source.id, "Move me", "", "Done"); await createTask(target.id, "Already here", "", "InProgress");
+  const from = (await listTasks(source.id, "all")).items[0]; const existing = (await listTasks(target.id, "all")).items[0];
+  const before = await getProject(target.id);
+  expect(await moveTasks([existing], target.id)).toBe(0);
+  expect(await getProject(target.id)).toEqual(before);
+  expect((await listTasks(target.id, "all")).items).toEqual([existing]);
+  expect(await moveTasks([from, existing], target.id)).toBe(1);
+  expect(await getProject(target.id)).toMatchObject({ taskCount: 2, doneCount: 1 });
+  expect((await listTasks(target.id, "all")).items.find(task => task.id === existing.id)).toEqual(existing);
 });
 it("rolls back every move if a selected task is stale or the target is archived", async () => {
   const source = await createProject("Atomic source"); const target = await createProject("Atomic target");

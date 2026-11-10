@@ -1,15 +1,15 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import type { DueFilter, LocalProfile, Project, TaskStatus } from "./contracts";
+import type { DueFilter, LocalProfile, Project, TaskChange, TaskStatus } from "./contracts";
 import { getProject, listProjects, profile, subscribeChanges } from "./store";
 import styles from "./local.module.css";
 import { useTaskQuery } from "./use-task-query";
 import { ProjectSettings } from "./project-settings";
 import { SavedDrafts } from "./saved-drafts";
-import { ProjectComposer } from "./project-composer";
+import { ProjectNavigation } from "./project-navigation";
+import { ProjectProgress } from "./project-progress";
 import type { Draft } from "./draft-contracts";
 import { TaskList } from "./task-list";
-import { WorkspaceBackupControls } from "./workspace-backup";
 import { TaskComposer } from "./task-composer";
 import { statusLabels as labels } from "./contracts";
 
@@ -42,7 +42,7 @@ export function LocalWorkspace() {
       if (restoreView) { restoredView.current = true; setArchived(showingArchive); setFilter(restoredFilter); }
       const wantedState = showingArchive ? "archived" : "active";
       const chosen = pinned && (pinned.state ?? "active") === wantedState ? pinned : page.items[0];
-      setOwner(value); setMoreProjects(page.more); setCurrentProject(chosen); setSelected(chosen?.id ?? "");
+      setError(""); setOwner(value); setMoreProjects(page.more); setCurrentProject(chosen); setSelected(chosen?.id ?? "");
       setProjects(chosen && !page.items.some(item => item.id === chosen.id) ? [chosen, ...page.items] : page.items);
     }).catch(cause => { if (active) setError(friendlyError(cause)); });
     return () => { active = false; };
@@ -50,15 +50,23 @@ export function LocalWorkspace() {
   useEffect(() => {
     if (selected) { try { sessionStorage.setItem("tasktracker:view", JSON.stringify({ projectId: selected, filter, archived })); } catch { /* View preferences are optional. */ } }
   }, [selected, filter, archived]);
-  function taskChanged(count: number, status: TaskStatus | "delete", destination?: string) {
-    if (destination && destination !== selected) {
-      void getProject(destination).then(project => setNotice({ scope: selected, text: `${count} ${count === 1 ? "task" : "tasks"} moved to ${project?.name ?? "project"}`, projectId: destination }));
-    } else setNotice({ scope: selected, text: status === "delete" ? `${count} ${count === 1 ? "task" : "tasks"} deleted` : `${count} ${count === 1 ? "task" : "tasks"} saved in ${labels[status]}`, status: status === "delete" ? undefined : status });
+  function taskChanged(change: TaskChange) {
+    const { count } = change;
+    const subject = `${count} ${count === 1 ? "task" : "tasks"}`;
+    if (change.kind === "moved" && !count) {
+      setNotice({ scope: selected, text: "Tasks already in this project." });
+    } else if (change.kind !== "deleted" && change.projectId && change.projectId !== selected) {
+      const destination = change.projectId;
+      const scope = selected;
+      setNotice({ scope, text: `${subject} moved`, projectId: destination });
+      void getProject(destination).then(project => setNotice(current => current?.scope === scope && current.projectId === destination ? { ...current, text: `${subject} moved to ${project?.name ?? "project"}` } : current)).catch(() => { /* The committed move remains visible even if its label cannot load. */ });
+    } else if (change.kind === "deleted") setNotice({ scope: selected, text: `${subject} deleted` });
+    else if (change.kind === "saved") setNotice({ scope: selected, text: `${subject} saved in ${labels[change.status]}`, status: change.status });
   }
   if (!owner) return <main className={styles.shell}><a className="brand" href="/login"><span className="brand-mark" aria-hidden="true">✳</span> TaskTracker</a>
-    <div className={`glass ${styles.empty}`} role="status">{error || "Loading…"}</div></main>;
+    <div className={`glass ${styles.empty}`} role="status">{error || "Loading…"}{error && <button type="button" className={styles.textAction} onClick={() => setRevision(value => value + 1)}>Retry workspace</button>}</div></main>;
   const project = currentProject;
-  const total = project?.taskCount ?? 0; const done = project?.doneCount ?? 0; const percent = total ? Math.round(done / total * 100) : 0;
+  const total = project?.taskCount ?? 0; const done = project?.doneCount ?? 0;
   const tasksReady = taskPage.ready;
   const date = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", weekday: "long" }).format(new Date());
   return <main className={styles.shell}>
@@ -67,20 +75,17 @@ export function LocalWorkspace() {
         <a className={styles.profile} href="/login" aria-label="Workspace settings"><span className={styles.avatar}>{owner.name.slice(0, 1).toUpperCase()}</span><span>{owner.name}</span></a>
       </div></header>
     <div className={styles.heading}><h1>Projects</h1><span className={styles.date}>{date}</span></div>
-    {error && <p className="form-error" role="alert">{error}</p>}
+    {error && <p className="form-error" role="alert">{error}<button type="button" className={styles.textAction} onClick={() => setRevision(value => value + 1)}>Retry workspace</button></p>}
     <div className={styles.layout}>
-      <aside className={`glass ${styles.sidebar}`} aria-label="Projects"><div className={styles.sectionLabel}><h2>{archived ? "Archived" : "My projects"}</h2><span>{projects.length}{moreProjects ? "+" : ""}</span></div>
-        <button type="button" className={styles.textAction} onClick={() => { setArchived(value => !value); setSelected(""); setCurrentProject(undefined); setResumed(undefined); setProjectLimit(50); }}>{archived ? "Active projects" : "Archived projects"}</button>
-        <div className={styles.projectList}>{projects.map(value => <button key={value.id} className={styles.project} aria-pressed={selected === value.id} onClick={() => { setResumed(undefined); setNotice(undefined); setSelected(value.id); setSearch(""); setDueFilter("all"); setFilter("all"); }}>
-          <span className={styles.dot} data-color={value.color} aria-hidden="true" /><span className={styles.projectName}>{value.name}</span><span className={styles.projectCount}>{value.taskCount}</span>
-        </button>)}</div>
-        {moreProjects && <button className={`secondary ${styles.loadMore}`} onClick={() => setProjectLimit(value => value + 50)}>More projects</button>}
-        <ProjectComposer onAdded={value => { setArchived(false); setResumed(undefined); setSelected(value.id); setFilter("all"); setSearch(""); setDueFilter("all"); }} />
-        <WorkspaceBackupControls />
-      </aside>
+      <ProjectNavigation projects={projects} selected={selected} archived={archived} more={moreProjects}
+        onToggleArchive={() => { setArchived(value => !value); setSelected(""); setCurrentProject(undefined); setResumed(undefined); setProjectLimit(50); }}
+        onSelect={id => { setResumed(undefined); setNotice(undefined); setSelected(id); setSearch(""); setDueFilter("all"); setFilter("all"); }}
+        onMore={() => setProjectLimit(value => value + 50)}
+        onCreated={value => { setArchived(false); setResumed(undefined); setSelected(value.id); setFilter("all"); setSearch(""); setDueFilter("all"); }} />
       <section className={`glass ${styles.board}`} aria-labelledby="board-title">
         <div className={styles.boardHeading}><h2 id="board-title" tabIndex={-1}>{project?.name ?? "Tasks"}</h2>{project && <span className={styles.countBadge}>{total}</span>}</div>
         {project ? <>
+          <ProjectProgress total={total} done={done} compact />
           <ProjectSettings key={`${project.id}:${resumed?.kind === "rename" ? resumed.id : ""}`} resumeDraft={resumed?.kind === "rename" ? resumed : undefined} project={project} onStateChanged={state => { setResumed(undefined); setCurrentProject({ ...project, state }); setArchived(state === "archived"); }} />
           {project.state === "archived" && <p className={styles.draftStatus}>Archived · restore to make changes</p>}
           <div className={styles.tabs} aria-label="Filter tasks">{(["all", "Todo", "InProgress", "Done"] as const).map(status => <button key={status} aria-pressed={filter === status} onClick={() => { setResumed(undefined); setNotice(undefined); setFilter(status); setSearch(""); setDueFilter("all"); }}>{status === "all" ? "All" : labels[status]}</button>)}</div>
@@ -93,12 +98,10 @@ export function LocalWorkspace() {
           <TaskList key={`${selected}:${filter}:${resumed?.kind === "editor" ? resumed.id : ""}`} resumeDraft={resumed?.kind === "editor" ? resumed : undefined} readOnly={project.state === "archived"} emptyLabel={search || dueFilter !== "all" ? taskPage.more ? "No matches yet" : "No matching tasks" : filter === "all" ? "No tasks yet" : `No ${labels[filter].toLowerCase()} tasks`} tasks={taskPage.ready ? taskPage.items : taskPage.items.filter(task => task.projectId === selected && (filter === "all" || task.status === filter))} onChanged={taskChanged} />
           {tasksReady && taskPage.more && <button className={`secondary ${styles.loadMore}`} disabled={taskPage.loadingMore} onClick={() => void taskPage.moreTasks()}>More tasks</button>}
           {project.state !== "archived" && <SavedDrafts key={selected} projectId={selected} onResume={value => { setResumed(value); if (value.kind === "editor") { setFilter("all"); setSearch(""); setDueFilter("all"); } }} />}
-          {project.state !== "archived" && <TaskComposer key={`${selected}:${resumed?.kind === "composer" ? resumed.id : ""}`} draftId={resumed?.kind === "composer" ? resumed.id : undefined} projectId={selected} onAdded={(count, status) => { setFilter("all"); setSearch(""); setDueFilter("all"); taskChanged(count, status); }} />}
+          {project.state !== "archived" && <TaskComposer key={`${selected}:${resumed?.kind === "composer" ? resumed.id : ""}`} draftId={resumed?.kind === "composer" ? resumed.id : undefined} projectId={selected} onAdded={(count, status) => { setFilter("all"); setSearch(""); setDueFilter("all"); taskChanged({ kind: "saved", count, status }); }} />}
         </> : <div className={styles.empty}><span className={styles.emptyIcon} aria-hidden="true">✳</span><strong>{archived ? "No archived projects" : "Create a project"}</strong></div>}
       </section>
-      <aside className={styles.right}><section className={`glass ${styles.summary}`} aria-labelledby="progress-title"><h2 id="progress-title">Progress</h2>
-        <div className={styles.ring} style={{ background: `conic-gradient(#b68ad4 ${percent}%, #e9dcf27a 0)` }}><strong>{percent}%</strong></div><p className={styles.progressText} aria-label={`${done} of ${total} tasks completed`}>{done} / {total}</p>
-      </section></aside>
+      <aside className={styles.right}><ProjectProgress total={total} done={done} /></aside>
     </div>
   </main>;
 }

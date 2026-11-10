@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import type { Task, TaskStatus } from "./contracts";
+import type { Task, TaskChange, TaskStatus } from "./contracts";
 import type { Draft } from "./draft-contracts";
 import { ProjectPicker } from "./project-picker";
 import { changeTasks, moveTasks } from "./store";
@@ -9,7 +9,7 @@ import { StatusSelect } from "./status-select";
 import { TaskEditor } from "./task-editor";
 import styles from "./local.module.css";
 
-export function TaskList({ tasks, resumeDraft, emptyLabel, readOnly = false, onChanged }: { tasks: Task[]; resumeDraft?: Draft; emptyLabel: string; readOnly?: boolean; onChanged: (count: number, status: TaskStatus | "delete", projectId?: string) => void }) {
+export function TaskList({ tasks, resumeDraft, emptyLabel, readOnly = false, onChanged }: { tasks: Task[]; resumeDraft?: Draft; emptyLabel: string; readOnly?: boolean; onChanged: (change: TaskChange) => void }) {
   const [editing, setEditing] = useState<Task | undefined>(resumeDraft?.task);
   const visibleTasks = editing && !tasks.some(task => task.id === editing.id) ? [editing, ...tasks] : tasks;
   const [selecting, setSelecting] = useState(false); const [selected, setSelected] = useState<Task[]>([]);
@@ -32,7 +32,14 @@ export function TaskList({ tasks, resumeDraft, emptyLabel, readOnly = false, onC
     if (busy.current) return;
     busy.current = true; setWorking(true); setError("");
     try {
-      if (destinationId) await moveTasks(items, destinationId); else await changeTasks(items, status); setSelected([]); setDeleting([]); onChanged(items.length, status, destinationId);
+      if (destinationId) {
+        const count = await moveTasks(items, destinationId);
+        onChanged({ kind: "moved", count, projectId: destinationId });
+      } else {
+        await changeTasks(items, status);
+        onChanged(status === "delete" ? { kind: "deleted", count: items.length } : { kind: "saved", count: items.length, status });
+      }
+      setSelected([]); setDeleting([]);
       focus(status === "delete" ? "board-title" : `status-${items[0].id}`);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not update tasks."); }
     finally { busy.current = false; setWorking(false); }
@@ -59,7 +66,7 @@ export function TaskList({ tasks, resumeDraft, emptyLabel, readOnly = false, onC
     </section>}
     <ul className={styles.taskList}>{visibleTasks.map(task => <li key={task.id} className={styles.task}>
       {selecting && <label className={styles.selectionTarget}><input type="checkbox" aria-label={`Select task: ${task.title}`} checked={selected.some(value => value.id === task.id)} disabled={working || (selected.length >= 100 && !selected.some(value => value.id === task.id))} onChange={event => { setDeleting([]); setSelected(current => event.target.checked ? [...current, task] : current.filter(value => value.id !== task.id)); }} /></label>}
-      <div className={styles.taskContent}>{!readOnly && editing?.id === task.id ? <TaskEditor task={editing} draftId={resumeDraft?.task?.id === task.id ? resumeDraft.id : undefined} onClose={closeEditor} onSaved={(status, projectId) => onChanged(1, status, projectId)} /> : <>
+      <div className={styles.taskContent}>{!readOnly && editing?.id === task.id ? <TaskEditor task={editing} draftId={resumeDraft?.task?.id === task.id ? resumeDraft.id : undefined} onClose={closeEditor} onSaved={(status, projectId) => onChanged({ kind: "saved", count: 1, status, projectId })} /> : <>
         <button className={`${styles.taskTitle} ${styles.editTask} ${task.status === "Done" ? styles.done : ""}`} id={`edit-task-${task.id}`} aria-label={`Edit task: ${task.title}`} disabled={readOnly || working || selecting || Boolean(editing)} onClick={() => { setEditing(task); setDeleting([]); }}>{task.title}</button>
         {task.description && <p className={styles.taskDescription}>{task.description}</p>}
         <div className={styles.taskMeta}>

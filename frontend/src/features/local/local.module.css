@@ -27,10 +27,10 @@
 .dot[data-color=coral] { background: #f4a0a7; }.dot[data-color=blue] { background: #91c2e9; }
 .projectName { flex: 1; overflow-wrap: anywhere; }
 .projectCount { font-size: 11px; color: var(--muted); }
-.inlineForm { display: grid; grid-template-columns: minmax(0,1fr) 42px; gap: 10px; padding-top: 20px; border-top: 1px solid #ffffffa0; }
+.inlineForm { display: grid; grid-template-columns: minmax(0,1fr) var(--control-size); gap: 10px; padding-top: 20px; border-top: 1px solid #ffffffa0; }
 .inlineForm label { grid-column: 1 / -1; font-size: 11px; color: var(--muted); }
 .inlineForm input { font-size: 12px; padding: 12px; }
-.inlineForm button { padding: 0; min-width: 42px; font-size: 22px; }
+.inlineForm button { padding: 0; min-width: var(--control-size); font-size: 22px; }
 .board { min-height: 440px; }
 .boardHeading { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
 .boardHeading h2 { font-size: 22px; letter-spacing: -.035em; margin-bottom: 5px; overflow-wrap: anywhere; }
@@ -67,7 +67,7 @@
 .empty strong { display: block; color: var(--ink); font-size: 16px; margin: 16px 0 10px; }
 .empty p { font-size: 12px; max-width: 300px; margin: auto; line-height: 1.7; }
 .emptyIcon { font-size: 34px; color: #af8ccd; }
-.ring { width: 142px; height: 142px; border-radius: 50%; margin: 20px auto; display: grid; place-items: center; box-shadow: 0 8px 24px #b381d62a; position: relative; }
+.ring { width: 142px; height: 142px; border-radius: 50%; margin: 20px auto; display: grid; place-items: center; box-shadow: 0 8px 24px #b381d62a; position: relative; background: conic-gradient(var(--progress-fill) var(--progress), var(--progress-track) 0); }
 .ring::before { content: ""; position: absolute; inset: 10px; border-radius: 50%; background: #f8f2fc; }
 .ring strong { position: relative; font-size: 28px; letter-spacing: -.05em; }
 .progressText { text-align: center; font-size: 11px; color: var(--muted); margin-bottom: 24px; }
@@ -80,7 +80,7 @@
 .statusSelect:disabled { opacity: .6; cursor: default; }
 .composerHeading, .selectionBar, .bulkBar, .actionNotice { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .composerHeading { justify-content: space-between; }
-.textAction { background: transparent; color: var(--accent); border: 0; padding: 8px; font-size: 12px; min-height: 44px; }
+.textAction { background: transparent; color: var(--accent); border: 0; padding: 8px; font-size: 12px; min-height: var(--control-size); min-width: var(--control-size); }
 .composerFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .composerFields > div { min-width: 0; display: grid; gap: 6px; }
 .composerFields select { width: 100%; }
@@ -116,10 +116,26 @@
 .projectSettings form { border: 0; }
 .fieldLabel { font-size: 12px; color: var(--muted); }
 .taskDescription { font-size: 12px; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; margin: 4px 0 12px; }
-.tabs button { min-height: 44px; }
+.tabs button { min-height: var(--control-size); min-width: var(--control-size); }
 @media(max-width:680px) { .taskForm input, .taskForm textarea, .statusSelect, .inlineForm input, .entryForm input { font-size: 16px; } }
 
 .searchRow { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 16px; }
 .searchField { min-width: 0; flex: 1 1 160px; font-size: 12px; color: var(--muted); }
 .searchField input { display: block; width: 100%; min-width: 0; margin-top: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); font: inherit; min-height: 44px; }
 @media(max-width:680px) { .searchField input { font-size: 16px; } }
+
+.profile { min-height: var(--control-size); }
+.mobileProjectBar { display: none; }
+.compactProgress { display: none; }
+@media(max-width:1100px) {
+  .compactProgress { display: flex; align-items: center; gap: 12px; margin: -12px 0 16px; color: var(--muted); font-size: 12px; }
+  .compactProgress progress { width: 100px; max-width: 35%; height: 8px; accent-color: var(--accent); }
+}
+@media(max-width:680px) {
+  .shell { padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
+  .sidebar { padding: 12px; }
+  .mobileProjectBar { display: flex; align-items: center; gap: 8px; }
+  .mobileProjectBar select { flex: 1; width: 0; }
+  .projectManagement { padding: 16px 8px 8px; }
+  .managementCollapsed { display: none; }
+}

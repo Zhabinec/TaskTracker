@@ -15,11 +15,11 @@ export function ProjectPicker({ value, label, onChange, disabled = false }: { va
       if (!active) return;
       setProjects(selected && !page.items.some(project => project.id === selected.id) ? [selected, ...page.items] : page.items);
       setMore(page.more); setError("");
-    }).catch(() => { if (active) setError("Projects unavailable. Retry by reopening this form."); });
+    }).catch(() => { if (active) setError("Projects unavailable."); });
     return () => { active = false; };
   }, [limit, revision, value]);
   return <><select className={styles.statusSelect} aria-label={label} value={value} onChange={event => onChange(event.target.value)} disabled={disabled || Boolean(error)}>
     <option value="">Choose project</option>{projects.map(project => <option key={project.id} value={project.id} disabled={project.state === "archived"}>{project.name}{project.state === "archived" ? " (archived)" : ""}</option>)}
   </select>{more && <button type="button" className={styles.textAction} disabled={disabled} onClick={() => setLimit(count => count + 50)}>More destinations</button>}
-  {error && <span className="form-error" role="alert">{error}</span>}</>;
+  {error && <span className="form-error" role="alert">{error}<button type="button" className={styles.textAction} disabled={disabled} onClick={() => setRevision(count => count + 1)}>Retry projects</button></span>}</>;
 }

@@ -37,6 +37,12 @@ Use the existing CSS variables and CSS Modules; keep client interactions in smal
   update both project counters atomically. Search and due filters change only view.
 - Keep phone controls at least 16px to avoid input zoom. Restore keyboard focus
   after the new DOM is committed, rather than guessing a frame delay.
+- On phones, keep project selection compact. Manage expands secondary creation,
+  archive and backup controls without unmounting drafts; the first-project form is
+  available immediately. After creation, return focus to Manage before collapsing.
+- Keep completed/total progress available below 1100px as a compact board summary.
+  Bulk move feedback uses the committed count; moving to the current project must
+  never claim a status change.
 
 ## Sources and tools
 

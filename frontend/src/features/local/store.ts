@@ -253,9 +253,10 @@ export async function updateProject(project: Project, name: string, state: "acti
   } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
   await done; changed(); if (draft) draftsChanged();
 }
-export async function moveTasks(selected: Task[], projectId: string): Promise<void> {
+export async function moveTasks(selected: Task[], projectId: string): Promise<number> {
   if (!selected.length || selected.length > 100 || new Set(selected.map(task => task.id)).size !== selected.length) throw new Error("Select 1 to 100 different tasks.");
   const db = await database(); const tx = db.transaction(["tasks", "projects"], "readwrite"); const done = committed(tx);
+  let moved = 0;
   try {
     const tasks = tx.objectStore("tasks"); const projects = tx.objectStore("projects"); const now = new Date().toISOString();
     for (const task of selected) {
@@ -265,11 +266,12 @@ export async function moveTasks(selected: Task[], projectId: string): Promise<vo
       if (!source || !target) throw new Error("Project not found."); ensureActive(source); ensureActive(target);
       if (source.id === target.id) continue;
       tasks.put({ ...current, projectId, version: current.version + 1 });
+      moved += 1;
       projects.put({ ...source, taskCount: source.taskCount - 1, doneCount: source.doneCount - (current.status === "Done" ? 1 : 0), updatedAt: now });
       projects.put({ ...target, taskCount: target.taskCount + 1, doneCount: target.doneCount + (current.status === "Done" ? 1 : 0), updatedAt: now });
     }
   } catch (error) { tx.abort(); await done.catch(() => {}); throw error; }
-  await done; changed();
+  await done; if (moved) changed(); return moved;
 }
 
 

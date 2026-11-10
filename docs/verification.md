@@ -127,3 +127,22 @@ CI обновлён: optional cloud stack проверяется отдельн�
 - Физические iOS/Android, remote CI и настоящая публикация остаются приёмкой
   окружения. Инструкция: release.md. Workspace service/облачная синхронизация
   не входят в этот локальный RC и не объявляются реализованными.
+
+## 2026-11-10 — переносы и мобильное рабочее пространство
+
+- Frontend lint, TypeScript и 42 теста в 9 файлах прошли. Новый storage-сценарий
+  проверяет фактическое число переносов, отсутствие изменений у same-project
+  записи и смешанный набор. Существующая проверка rollback при stale task прошла.
+- Production Docker build прошёл; frontend healthy. Схема IndexedDB остаётся v3,
+  зависимости и границы облачных сервисов не менялись.
+- 25 сценариев × Chromium/Firefox/WebKit: 75 passed (5.2m), без retries,
+  scripts/Test-Browsers.ps1, закреплённый Linux Playwright image.
+- Новые E2E: перенос в текущий проект не меняет и не объявляет смену статуса;
+  мобильное Manage сохраняет черновик при сворачивании, возвращает фокус,
+  оставляет прогресс и переключение проектов доступными; Retry workspace
+  восстанавливается после временной ошибки чтения без reload.
+- Дополнительный изолированный Edge smoke: Retry projects восстанавливает select,
+  введённый текст редактора сохраняется. Desktop 1440px и mobile 390px скриншоты
+  просмотрены. Автоматически измерены основные исправленные touch targets ≥44×44.
+- Physical-device keyboard/safe-area/overlay acceptance, HTTPS deployment and
+  remote CI remain external acceptance. Backend was unchanged and not rerun.

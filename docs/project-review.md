@@ -30,6 +30,12 @@ verification.md; those suites were not rerun in this review.
 
 ## Recommended next work, in order
 
+Implementation follow-up: move counts/feedback, compact mobile management, compact
+progress, measured control sizing, and explicit workspace/project-picker retries
+are now implemented. Navigation and progress have separate presentation components;
+storage transactions remain atomic. URL navigation, broader token consolidation,
+physical-device overlay/keyboard checks and external release acceptance remain.
+
 1. Fix misleading no-op move feedback. `TaskList.change` reports its requested
    count/status after `moveTasks` skips same-project rows. `taskChanged` can then
    report a status save although no status changed. Exclude the source from bulk
