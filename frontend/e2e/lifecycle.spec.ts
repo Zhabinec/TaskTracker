@@ -1,3 +1,4 @@
+import { changeTaskStatus } from "./task-actions";
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
@@ -14,6 +15,7 @@ test("rename, archive, reload and restore preserve tasks and descriptions", asyn
   await page.getByRole("button", { name: "Add task", exact: true }).click();
   await page.getByRole("button", { name: "Edit task: A finished task", exact: true }).click();
   const editor = page.getByRole("form", { name: "Edit task", exact: true });
+  await editor.getByText("More details", { exact: true }).click();
   await editor.getByLabel("Description", { exact: true }).fill("Release notes\nCheck all browsers");
   await editor.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Release notes\nCheck all browsers", { exact: true })).toBeVisible();
@@ -32,7 +34,7 @@ test("rename, archive, reload and restore preserve tasks and descriptions", asyn
   await expect(page.getByRole("heading", { name: "Ready for release", exact: true })).toBeVisible();
   await page.getByText("Project settings", { exact: true }).click();
   await page.getByRole("button", { name: "Restore project", exact: true }).click();
-  await expect(page.getByRole("combobox", { name: "Status: A finished task", exact: true })).toHaveValue("Done");
+  await expect(page.getByLabel("Status: A finished task", { exact: true })).toHaveText("Done");
   await expect(page.getByRole("form", { name: "Add tasks", exact: true })).toBeVisible();
 });
 test("move an edited task and selected tasks to an explicit destination", async ({ page }) => {
@@ -43,6 +45,7 @@ test("move an edited task and selected tasks to an explicit destination", async 
   }
   await page.getByRole("button", { name: "Edit task: Move individually", exact: true }).click();
   const editor = page.getByRole("form", { name: "Edit task", exact: true });
+  await editor.getByText("More details", { exact: true }).click();
   await editor.getByRole("combobox", { name: "Task project", exact: true }).selectOption({ label: "Destination" });
   await editor.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "1 task moved to Destination" })).toBeVisible();
@@ -66,13 +69,14 @@ test("searches descriptions, filters due dates and continues past the first task
   await expect(page.getByRole("button", { name: /^Edit task: Work/ })).toHaveCount(62);
   await page.getByRole("button", { name: "Edit task: Work 7", exact: true }).click();
   const editor = page.getByRole("form", { name: "Edit task", exact: true });
+  await editor.getByText("More details", { exact: true }).click();
   await editor.getByLabel("Description", { exact: true }).fill("Unique release detail");
   await editor.getByLabel("Due date", { exact: true }).fill("2000-01-01");
   await editor.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("searchbox", { name: "Search tasks", exact: true }).fill("unique release");
   await page.getByRole("combobox", { name: "Due date filter", exact: true }).selectOption("overdue");
   await expect(page.getByRole("button", { name: /^Edit task: Work/ })).toHaveCount(1);
-  await page.getByRole("combobox", { name: "Status: Work 7", exact: true }).selectOption("Done");
+  await changeTaskStatus(page, "Work 7", "Done");
   await expect(page.getByText("No matching tasks", { exact: true })).toBeVisible();
 });
 test("a selected project survives being pushed beyond the first project page", async ({ page }) => {

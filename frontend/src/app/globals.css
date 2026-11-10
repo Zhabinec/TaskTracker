@@ -34,5 +34,6 @@ h1, h2, h3, h4, h5, h6, .brand { font-family: var(--font-heading); }
 
 .draft-safety { position: sticky; bottom: 90px; margin: 16px auto; padding: 14px 18px; max-width: min(620px, calc(100% - 32px)); border-radius: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 12px; }
 html { scroll-padding-block: 100px; }
+:root { --status-done: #346646; --status-progress: #85541b; }
 input, textarea, select, button, summary, a { scroll-margin-block: 100px; }
 .runtime-notice { flex-wrap: wrap; max-width: calc(100vw - 32px); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }

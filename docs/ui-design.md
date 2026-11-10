@@ -10,8 +10,13 @@ Use the existing CSS variables and CSS Modules; keep client interactions in smal
 ## Interaction
 
 - One clear primary action per form. Hide secondary detail until needed.
-- Edit tasks inline by selecting the title. Save explicitly; Cancel or Escape discards
-  the draft. Return focus to the title after closing. Never overwrite a stale version.
+- The task card, including its status/date area, opens an Edit task dialog. Show a
+  persistent Edit hint and a readable status badge; the badge does not cycle state.
+  Title, due date and status are immediately available; description and destination
+  stay under More details. Save explicitly; Cancel, the close button or Escape
+  discards the edit draft. Reload preserves it for recovery through Saved drafts.
+  Keep focus inside the modal and return it to the card after closing. Never
+  overwrite a stale version. The background stays inert while the dialog is open.
 - Touch actions at least 44 × 44 CSS pixels. Accessible names for icon buttons.
 - Prefer native controls and keyboard interaction; never depend on hover alone.
 - Keep drafts and errors visible when saving fails. Show progress during writes.

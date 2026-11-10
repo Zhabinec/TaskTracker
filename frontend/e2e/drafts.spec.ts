@@ -36,7 +36,7 @@ test("creation drafts survive project/filter switches and offline reload with bo
   await composer.getByRole("button", { name: "Single task", exact: true }).click();
   await expect(composer.getByLabel("Task", { exact: true })).toHaveValue("Unfinished single");
   await composer.getByRole("button", { name: "Add task", exact: true }).click();
-  await expect(page.getByRole("combobox", { name: "Status: Unfinished single", exact: true })).toHaveValue("Done");
+  await expect(page.getByLabel("Status: Unfinished single", { exact: true })).toHaveText("Done");
   await page.reload();
   await expect(composer.getByLabel("Task", { exact: true })).toHaveValue("");
   await page.getByRole("button", { name: /^Project B/ }).click();
@@ -54,6 +54,7 @@ test("editing drafts resume after filters and reload, then disappear on Save or 
   await editor.getByLabel("Due date").fill("2026-12-24");
   await editor.getByRole("combobox", { name: "Task status", exact: true }).selectOption("Done");
   await expect(editor.getByRole("status")).toHaveText("Draft saved");
+  await page.reload();
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect(page.getByText("No done tasks", { exact: true })).toBeVisible();
   await page.getByText("Saved drafts (1)", { exact: true }).click();
@@ -67,7 +68,7 @@ test("editing drafts resume after filters and reload, then disappear on Save or 
   await page.screenshot({ path: "test-results/recovered-draft-mobile.png", fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await editor.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(page.getByRole("combobox", { name: "Status: Recovered edit", exact: true })).toHaveValue("Done");
+  await expect(page.getByLabel("Status: Recovered edit", { exact: true })).toHaveText("Done");
   await expect(page.getByText(/^Saved drafts/)).not.toBeVisible();
   await page.getByRole("button", { name: "Edit task: Recovered edit", exact: true }).click();
   await editor.getByLabel("Task", { exact: true }).fill("Discard me");

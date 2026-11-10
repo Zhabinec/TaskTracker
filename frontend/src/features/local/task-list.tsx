@@ -7,6 +7,7 @@ import { ProjectPicker } from "./project-picker";
 import { changeTasks, moveTasks } from "./store";
 import { StatusSelect } from "./status-select";
 import { TaskEditor } from "./task-editor";
+import { TaskCard } from "./task-card";
 import styles from "./local.module.css";
 
 export function TaskList({ tasks, resumeDraft, emptyLabel, readOnly = false, onChanged }: { tasks: Task[]; resumeDraft?: Draft; emptyLabel: string; readOnly?: boolean; onChanged: (change: TaskChange) => void }) {
@@ -40,7 +41,7 @@ export function TaskList({ tasks, resumeDraft, emptyLabel, readOnly = false, onC
         onChanged(status === "delete" ? { kind: "deleted", count: items.length } : { kind: "saved", count: items.length, status });
       }
       setSelected([]); setDeleting([]);
-      focus(status === "delete" ? "board-title" : `status-${items[0].id}`);
+      focus(status === "delete" ? "board-title" : `edit-task-${items[0].id}`);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not update tasks."); }
     finally { busy.current = false; setWorking(false); }
   }
@@ -66,15 +67,9 @@ export function TaskList({ tasks, resumeDraft, emptyLabel, readOnly = false, onC
     </section>}
     <ul className={styles.taskList}>{visibleTasks.map(task => <li key={task.id} className={styles.task}>
       {selecting && <label className={styles.selectionTarget}><input type="checkbox" aria-label={`Select task: ${task.title}`} checked={selected.some(value => value.id === task.id)} disabled={working || (selected.length >= 100 && !selected.some(value => value.id === task.id))} onChange={event => { setDeleting([]); setSelected(current => event.target.checked ? [...current, task] : current.filter(value => value.id !== task.id)); }} /></label>}
-      <div className={styles.taskContent}>{!readOnly && editing?.id === task.id ? <TaskEditor task={editing} draftId={resumeDraft?.task?.id === task.id ? resumeDraft.id : undefined} onClose={closeEditor} onSaved={(status, projectId) => onChanged({ kind: "saved", count: 1, status, projectId })} /> : <>
-        <button className={`${styles.taskTitle} ${styles.editTask} ${task.status === "Done" ? styles.done : ""}`} id={`edit-task-${task.id}`} aria-label={`Edit task: ${task.title}`} disabled={readOnly || working || selecting || Boolean(editing)} onClick={() => { setEditing(task); setDeleting([]); }}>{task.title}</button>
-        {task.description && <p className={styles.taskDescription}>{task.description}</p>}
-        <div className={styles.taskMeta}>
-          <StatusSelect id={`status-${task.id}`} label={`Status: ${task.title}`} value={task.status} disabled={readOnly || working || selecting || Boolean(editing)} onChange={status => void change([task], status)} />
-          {task.dueDate && <time dateTime={task.dueDate}>{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(`${task.dueDate}T12:00:00`))}</time>}
-        </div>
-      </>}</div>
+      <div className={styles.taskContent}><TaskCard task={task} readOnly={readOnly} disabled={working || selecting || Boolean(editing)} onEdit={() => { setEditing(task); setDeleting([]); }} /></div>
       {!selecting && !readOnly && <button id={`delete-task-${task.id}`} className={styles.delete} disabled={working || Boolean(editing)} aria-label={`Delete task: ${task.title}`} onClick={() => { deleteOrigin.current = `delete-task-${task.id}`; setDeleting([task]); }}>×</button>}
     </li>)}</ul>
+    {editing && !readOnly && <TaskEditor key={editing.id} task={editing} draftId={resumeDraft?.task?.id === editing.id ? resumeDraft.id : undefined} onClose={closeEditor} onSaved={(status, projectId) => onChanged({ kind: "saved", count: 1, status, projectId })} />}
   </>;
 }

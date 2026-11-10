@@ -1,5 +1,23 @@
+import { changeTaskStatus } from "./task-actions";
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+
+test("an installed event without a waiting worker never advertises an update", async ({ page }) => {
+  await page.goto("/login");
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible({ timeout: 30000 });
+  await page.evaluate(async () => {
+    const registration = (await navigator.serviceWorker.getRegistration())!;
+    if (registration.waiting) throw new Error("Unexpected waiting worker before regression check");
+    const worker = Object.assign(new EventTarget(), { state: "installed" });
+    Object.defineProperty(registration, "installing", { configurable: true, value: worker });
+    registration.dispatchEvent(new Event("updatefound"));
+    worker.dispatchEvent(new Event("statechange"));
+    delete (registration as unknown as { installing?: unknown }).installing;
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  });
+  await expect(page.getByRole("button", { name: "Update", exact: true })).not.toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible();
+});
 
 test("offline setup can be retried after a failed registration", async ({ page }) => {
   await page.addInitScript(() => {
@@ -46,13 +64,13 @@ test("open without credentials, create a project and keep tasks offline after re
     return fonts.length > 0 && fonts.every(font => font.status === "loaded");
   })).toBe(true);
   await expect(page.getByText("Build a prototype", { exact: true })).toBeVisible();
-  await page.getByRole("combobox", { name: "Status: Build a prototype", exact: true }).selectOption("InProgress");
-  await expect(page.getByRole("combobox", { name: "Status: Build a prototype", exact: true })).toHaveValue("InProgress");
-  await page.getByRole("combobox", { name: "Status: Build a prototype", exact: true }).selectOption("Done");
+  await changeTaskStatus(page, "Build a prototype", "InProgress");
+  await expect(page.getByLabel("Status: Build a prototype", { exact: true })).toHaveText("In progress");
+  await changeTaskStatus(page, "Build a prototype", "Done");
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect(page.getByText("Build a prototype", { exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("combobox", { name: "Status: Build a prototype", exact: true })).toHaveValue("Done");
+  await expect(page.getByLabel("Status: Build a prototype", { exact: true })).toHaveText("Done");
   await page.getByLabel("Task", { exact: true }).fill("Check offline");
   await page.getByRole("button", { name: "Add task" }).click();
   await expect(page.getByText("Check offline", { exact: true })).toBeVisible();
@@ -169,12 +187,12 @@ test("another tab cannot silently overwrite an open task draft", async ({ page, 
   await page.getByLabel("Task", { exact: true }).fill("Shared task");
   await page.getByRole("button", { name: "Add task" }).click();
   const second = await context.newPage(); await second.goto("/projects");
-  await expect(second.getByRole("combobox", { name: "Status: Shared task", exact: true })).toHaveValue("Todo");
+  await expect(second.getByLabel("Status: Shared task", { exact: true })).toHaveText("To do");
   await page.getByRole("button", { name: "Edit task: Shared task", exact: true }).click();
   const editor = page.getByRole("form", { name: "Edit task", exact: true });
   await editor.getByLabel("Task", { exact: true }).fill("My unsaved draft");
-  await second.getByRole("combobox", { name: "Status: Shared task", exact: true }).selectOption("InProgress");
-  await expect(second.getByRole("combobox", { name: "Status: Shared task", exact: true })).toHaveValue("InProgress");
+  await changeTaskStatus(second, "Shared task", "InProgress");
+  await expect(second.getByLabel("Status: Shared task", { exact: true })).toHaveText("In progress");
   await expect(editor.getByRole("combobox", { name: "Task status", exact: true })).toHaveValue("Todo");
   await expect(editor.getByLabel("Task", { exact: true })).toHaveValue("My unsaved draft");
   await editor.getByRole("button", { name: "Save", exact: true }).click();
@@ -202,7 +220,7 @@ test("create completed tasks in bulk, move selected tasks and confirm deletion",
   await composer.getByRole("button", { name: "Add multiple tasks", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "3 tasks saved in Done" })).toBeVisible();
   for (const title of ["Already shipped", "Already tested", "Already reviewed"]) {
-    await expect(page.getByRole("combobox", { name: `Status: ${title}`, exact: true })).toHaveValue("Done");
+    await expect(page.getByLabel(`Status: ${title}`, { exact: true })).toHaveText("Done");
   }
   await page.getByRole("button", { name: "Select tasks", exact: true }).click();
   await page.getByRole("checkbox", { name: "Select task: Already shipped", exact: true }).check();
@@ -211,12 +229,12 @@ test("create completed tasks in bulk, move selected tasks and confirm deletion",
   await page.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(page.getByText("0 selected", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Cancel selection", exact: true }).click();
-  await expect(page.getByRole("combobox", { name: "Status: Already reviewed", exact: true })).toHaveValue("Done");
+  await expect(page.getByLabel("Status: Already reviewed", { exact: true })).toHaveText("Done");
   await page.getByRole("button", { name: "To do", exact: true }).click();
-  await page.getByRole("combobox", { name: "Status: Already shipped", exact: true }).selectOption("InProgress");
-  await expect(page.getByRole("combobox", { name: "Status: Already shipped", exact: true })).not.toBeVisible();
+  await changeTaskStatus(page, "Already shipped", "InProgress");
+  await expect(page.getByLabel("Status: Already shipped", { exact: true })).not.toBeVisible();
   await page.getByRole("button", { name: "View In progress", exact: true }).click();
-  await expect(page.getByRole("combobox", { name: "Status: Already shipped", exact: true })).toHaveValue("InProgress");
+  await expect(page.getByLabel("Status: Already shipped", { exact: true })).toHaveText("In progress");
   await page.getByRole("button", { name: "All", exact: true }).click();
   await page.getByRole("button", { name: "Select tasks", exact: true }).click();
   await page.getByRole("button", { name: "Select loaded (3)", exact: true }).click();
@@ -242,7 +260,7 @@ test("export and restore a backup offline without overwriting existing projects"
   await page.getByLabel("Task", { exact: true }).fill("Keep this work");
   await page.getByRole("combobox", { name: "New task status" }).selectOption("Done");
   await page.getByRole("button", { name: "Add task", exact: true }).click();
-  await expect(page.getByRole("combobox", { name: "Status: Keep this work", exact: true })).toHaveValue("Done");
+  await expect(page.getByLabel("Status: Keep this work", { exact: true })).toHaveText("Done");
   await expect(page.getByRole("status").filter({ hasText: "Offline ready" })).toBeVisible({ timeout: 30000 });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await context.setOffline(true);
@@ -263,5 +281,5 @@ test("export and restore a backup offline without overwriting existing projects"
   await expect(page.getByRole("button", { name: /^Backup project/ })).toHaveCount(2);
   await page.reload();
   await expect(page.getByRole("button", { name: /^Backup project/ })).toHaveCount(2);
-  await expect(page.getByRole("combobox", { name: "Status: Keep this work", exact: true })).toHaveValue("Done");
+  await expect(page.getByLabel("Status: Keep this work", { exact: true })).toHaveText("Done");
 });

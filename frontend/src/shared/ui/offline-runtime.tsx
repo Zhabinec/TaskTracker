@@ -10,7 +10,7 @@ export function OfflineRuntime() {
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !window.isSecureContext || process.env.NODE_ENV !== "production") return;
     let active = true;
-    const change = () => { if (reload.current) window.location.reload(); };
+    const change = () => { if (reload.current) window.location.reload(); else setWaiting(undefined); };
     navigator.serviceWorker.addEventListener("controllerchange", change);
     void (async () => {
       let build = "local-v1";
@@ -23,7 +23,7 @@ export function OfflineRuntime() {
         const worker = registration.installing;
         worker?.addEventListener("statechange", () => {
           if (worker.state === "installed" && active) {
-            if (navigator.serviceWorker.controller) setWaiting(registration);
+            if (navigator.serviceWorker.controller && registration.waiting) setWaiting(registration);
           }
         });
       });
@@ -42,6 +42,6 @@ export function OfflineRuntime() {
     })().catch(() => { if (active) setStatus("Offline setup unavailable"); });
     return () => { active = false; navigator.serviceWorker.removeEventListener("controllerchange", change); };
   }, [attempt]);
-  if (waiting) return <div className="glass runtime-notice" role="status">Update available<button className="secondary" disabled={updating} onClick={() => { setUpdating(true); setUpdateError(""); void flushDrafts().then(() => { reload.current = true; waiting.waiting?.postMessage("SKIP_WAITING"); }).catch(() => { setUpdateError("Save your draft before updating."); setUpdating(false); }); }}>{updating ? "Saving…" : "Update"}</button>{updateError && <span role="alert">{updateError}</span>}</div>;
+  if (waiting?.waiting) return <div className="glass runtime-notice" role="status">Update available<button className="secondary" disabled={updating} onClick={() => { setUpdating(true); setUpdateError(""); void flushDrafts().then(() => { reload.current = true; waiting.waiting?.postMessage("SKIP_WAITING"); }).catch(() => { setUpdateError("Save your draft before updating."); setUpdating(false); }); }}>{updating ? "Saving…" : "Update"}</button>{updateError && <span role="alert">{updateError}</span>}</div>;
   return status ? <div className="glass runtime-notice" role="status"><span aria-hidden="true">◈</span>{status}{status === "Offline setup unavailable" && <button className="secondary" onClick={() => setAttempt(value => value + 1)}>Retry offline setup</button>}<button className="secondary" aria-label="Dismiss" onClick={() => setStatus("")}>×</button></div> : null;
 }

@@ -146,3 +146,27 @@ CI обновлён: optional cloud stack проверяется отдельн�
   просмотрены. Автоматически измерены основные исправленные touch targets ≥44×44.
 - Physical-device keyboard/safe-area/overlay acceptance, HTTPS deployment and
   remote CI remain external acceptance. Backend was unchanged and not rerun.
+
+## 2026-11-10 — диалог задачи
+
+- TaskCard — отдельный компонент представления. Клик по названию, статусу или
+  свободной области карточки открывает native modal с названием, датой и статусом.
+  Описание и проект доступны в More details. У карточек больше нет отдельного
+  status select. Групповые операции по-прежнему используют явный выбор статуса.
+- Общий Modal отвечает только за dialog/portal/scroll lock. TaskEditor сохраняет
+  изменения через существующие draft/version-checked операции. Close, Cancel и
+  Escape удаляют edit draft; reload сохраняет его для Resume. Операции БД,
+  IndexedDB v3 и зависимости не менялись.
+- Lint, TypeScript, 42 unit/storage tests и production Docker build прошли.
+  Desktop/mobile окно просмотрено через изолированный Edge. Native dialog
+  оставляет фон inert; переход Tab в chrome самого браузера разрешён.
+- Во время проверки обнаружен ложный Update available после installed event без
+  waiting worker. Сценарий отдельно воспроизведён на предыдущей сборке в Edge;
+  runtime теперь проверяет реального waiting worker и очищает ожидание после
+  controllerchange. Добавлен детерминированный браузерный regression test.
+- Первый прогон новой матрицы выявил слишком строгое ожидание фокуса внутри
+  документа и ложный update notice. После исправлений финальный полный прогон:
+  27 сценариев × Chromium/Firefox/WebKit — 81 passed (5.1m), без retries.
+  В том числе проверены открытие по статусной области карточки, совместное
+  сохранение имени/даты/статуса, клавиатура, Close/Cancel/Escape, возврат фокуса,
+  восстановление черновика после reload и защита от межвкладочных конфликтов.

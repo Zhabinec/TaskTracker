@@ -13,9 +13,9 @@ have a separate release scope; a browser profile is never a cloud credential.
 | Log work already underway | Choose In progress directly | No mandatory intermediate states |
 | Add several tasks | One nonempty line per task; shared status/date; all saved together | Up to 100 per batch; duplicate titles represent distinct tasks |
 | Switch single/batch mode | Keep each draft independently | Saved locally; submitting one retains the other atomically |
-| Change status | Choose the destination by name | Explicit select; circular status button removed |
+| Change status | Open the task, choose the destination by name, Save | Card/status area opens Edit task; batch status actions remain explicit |
 | Item leaves active filter | Explain destination and offer navigation | Persistent notice with View destination |
-| Edit title/date/status | Explicit Save; Cancel/Escape leaves stored data intact | Version-checked transaction |
+| Edit title/date/status | One dialog, explicit Save; Cancel/close/Escape leaves stored data intact | Version-checked transaction, focus containment and return to the card |
 | Select several tasks | Selection mode, count, destination, Apply | Up to 100 loaded tasks; never implies all unloaded tasks |
 | One selected task changes in another tab | Fail the entire action; no partial writes | Expected version checked for every task |
 | Reopen Done work | Clear completion timestamp and decrement progress once | All non-Done destinations supported |

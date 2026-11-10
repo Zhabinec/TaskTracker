@@ -1,5 +1,43 @@
 import { expect, test } from "@playwright/test";
 
+test("the task surface opens a focused dialog and saves title, date and status together", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/login"); await page.getByRole("button", { name: "Get started" }).click();
+  await page.getByLabel("New project", { exact: true }).fill("Task dialog");
+  await page.getByRole("button", { name: "Create project", exact: true }).click();
+  await page.getByLabel("Task", { exact: true }).fill("Open from the status");
+  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  await page.getByLabel("Status: Open from the status", { exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Edit task", exact: true });
+  const input = dialog.getByLabel("Task", { exact: true });
+  await expect(input).toBeFocused();
+  await input.fill("Renamed in the dialog");
+  await dialog.getByLabel("Due date", { exact: true }).fill("2026-12-25");
+  await dialog.getByRole("combobox", { name: "Task status", exact: true }).selectOption("Done");
+  for (let i = 0; i < 12; i++) {
+    await page.keyboard.press("Tab");
+    // Native dialogs may hand focus to browser chrome between cycles; underlying
+    // application controls must stay inert throughout.
+    expect(await dialog.evaluate(element => document.activeElement === document.body || document.activeElement === document.documentElement || element.contains(document.activeElement))).toBe(true);
+  }
+  expect(await dialog.evaluate(element => element.matches(":modal"))).toBe(true);
+  const box = (await dialog.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: "test-results/task-dialog-mobile.png", fullPage: true });
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  const task = page.getByRole("button", { name: "Edit task: Renamed in the dialog", exact: true });
+  await expect(task).toBeFocused();
+  await expect(task.getByLabel("Status: Renamed in the dialog", { exact: true })).toHaveText("Done");
+  await expect(task.locator("time")).toHaveAttribute("datetime", "2026-12-25");
+  await page.keyboard.press("Enter"); await input.fill("Discard the close-button edit");
+  await dialog.getByRole("button", { name: "Close edit task", exact: true }).click();
+  await expect(task).toBeFocused();
+  await page.reload();
+  await expect(task).toBeVisible();
+  await expect(page.getByText(/^Saved drafts/)).not.toBeVisible();
+});
+
 test("moving to the current project never claims a status change", async ({ page }) => {
   await page.goto("/login"); await page.getByRole("button", { name: "Get started" }).click();
   await page.getByLabel("New project", { exact: true }).fill("Same destination");
@@ -12,9 +50,9 @@ test("moving to the current project never claims a status change", async ({ page
   await page.getByRole("combobox", { name: "Move selected to", exact: true }).selectOption({ label: "Same destination" });
   await page.getByRole("button", { name: "Move selected", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Tasks already in this project." })).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Status: Keep in progress", exact: true })).toHaveValue("InProgress");
+  await expect(page.getByLabel("Status: Keep in progress", { exact: true })).toHaveText("In progress");
   await page.reload();
-  await expect(page.getByRole("combobox", { name: "Status: Keep in progress", exact: true })).toHaveValue("InProgress");
+  await expect(page.getByLabel("Status: Keep in progress", { exact: true })).toHaveText("In progress");
 });
 
 test("mobile management collapses without losing drafts and keeps progress available", async ({ page }) => {
