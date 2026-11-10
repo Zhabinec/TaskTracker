@@ -294,3 +294,32 @@ CI обновлён: optional cloud stack проверяется отдельн�
 - Девять fault-proxy сценариев из pwa-startup.spec выполнялись в прежней CI/local
   матрице, а не против HTTPS: существующий loopback proxy использует HTTP upstream.
   Код приложения и IndexedDB в этой проверке не менялись. Free compute сохранён.
+
+## 2026-11-11 — Telegram menu launcher
+
+- Владелец выбрал Mini App через `@TaskTrackerPetBot` вместо обязательной установки
+  PWA на физический Android. Отдельный постоянно работающий bot backend не добавлен:
+  текущее действие бота — открыть существующий HTTPS frontend через Web App menu.
+- Bot API getMe подтвердил ожидаемый username. Default menu настроено как Open app
+  → `https://tasktracker-7wc0.onrender.com/login`; последующий getChatMenuButton
+  подтвердил сохранение. Profile Main Mini App остаётся выключенным по getMe.
+  Токен находится в игнорируемом deploy/.env.telegram.local вне frontend context;
+  в Git добавлен только пустой example. Сообщения в Telegram не отправлялись.
+- scripts/telegram-menu.mjs поддерживает read-only preview, проверку bot identity,
+  readiness перед изменением, идемпотентность и readback. Bot API form payload
+  содержит JSON-serialized menu_button и явный Content-Length. Ошибки не печатают
+  URL с токеном или raw API descriptions. Семь Node tests прошли; добавлены в CI.
+- Глобальный X-Frame-Options DENY мешал Telegram Web iframe. Теперь только /login
+  и /projects разрешают CSP frame-ancestors https://web.telegram.org; остальные
+  ответы имеют frame-ancestors 'none'. Никакой wildcard или отключения CSP нет.
+  Локальная production HTTP-проверка подтверждает итоговые заголовки и PWA assets.
+- Lint, TypeScript, 57 frontend unit tests и production Docker build прошли.
+  Финальный чистый Telegram E2E: 6 passed (10.3s), retries=0, три browser engines.
+  Проверяются реальные HTTP-заголовки и работа CSP на инертном HTTPS iframe probe.
+  Ранняя фикстура была некорректна из-за mixed content; обращение к уже заблокированному
+  iframe зависало в Firefox. Итоговая проверка использует HTTPS и authoritative CSP
+  console error, не обращаясь к документу, загрузку которого браузер запретил.
+- Схема IndexedDB, UI и доменные операции не менялись. Telegram SDK, нативные
+  Telegram controls и server-side Telegram authentication не добавлены. Фактический
+  запуск приложения в Telegram-клиенте и повторный публичный smoke новой сборки
+  ещё требуют соответствующей проверки. WebKit startup finding остаётся открытым.

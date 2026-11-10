@@ -15,8 +15,9 @@ touch device data.
   backend, frontend, database and containers all succeeded.
 
 On November 11, public HTTPS smoke checks passed and the app displayed Offline
-ready in the in-app browser. Physical Android and an actual Render deployment
-update/rollback remain pending. See [verification](verification.md) for browser
+ready in the in-app browser. The owner subsequently replaced physical Android PWA
+installation with [Telegram Mini App acceptance](telegram.md). Actual Telegram
+launch and a Render deployment update/rollback remain pending. See [verification](verification.md) for browser
 results, including WebKit startup timeouts during concurrent runs.
 
 ## Provision
@@ -56,6 +57,9 @@ Official references: [Docker](https://render.com/docs/docker),
 [Free limitations](https://render.com/docs/free).
 
 ## Physical Android acceptance
+
+Optional historical checklist: physical PWA installation is no longer a release
+gate. The current target is [the Telegram Mini App](telegram.md).
 
 Use Chrome on an actual Android device outside Incognito. Record phone model,
 Android/Chrome versions, URL and build ID. Desktop emulation does not sign off this

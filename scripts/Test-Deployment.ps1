@@ -40,6 +40,8 @@ foreach ($taskPath in @('/login', '/projects')) {
     if ($taskResponse.Headers['Content-Type'] -notmatch 'text/html' -or $taskResponse.Content -notmatch 'TaskTracker') {
         throw "Missing app shell: $taskPath"
     }
+    if ($taskResponse.Headers['Content-Security-Policy'] -ne 'frame-ancestors https://web.telegram.org') { throw "Unexpected Telegram embedding policy: $taskPath" }
+    if ($taskResponse.Headers['X-Frame-Options'] -match 'DENY|SAMEORIGIN') { throw "Telegram Web embedding is blocked: $taskPath" }
 }
 foreach ($taskPath in @('/icon-192.png', '/icon-512.png', '/fonts/jakarta-latin.woff2', '/fonts/inter-latin.woff2', '/fonts/inter-cyrillic.woff2')) {
     $taskResponse = Get-DeploymentResponse $taskPath

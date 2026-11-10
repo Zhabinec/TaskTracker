@@ -57,11 +57,12 @@ create additional copies; this is not a merge or automatic synchronization.
 
 ## Required acceptance outside this checkout
 
-1. Physical Android installed PWA lifecycle, touch targets and accessibility text
-   scaling. Recovery cannot be promised after forced OS termination while storage
-   rejects writes.
+1. Verify launch, close/reopen, editing, backup transfer and retention in the actual
+   Telegram Mini App client. The owner removed physical Android PWA installation
+   from this release gate and selected [@TaskTrackerPetBot](telegram.md). This does
+   not mean Telegram WebView behavior has already been verified.
 2. Rehearse an actual Render deployment update/rollback with existing data and
-   accept phone installation. Public TLS is verified at
+   accept Telegram launch and local data retention. Public TLS is verified at
    [the acceptance deployment](https://tasktracker-7wc0.onrender.com); live SHA
    `83052ef` has successful backend/frontend/database/containers
    [CI checks](https://github.com/Zhabinec/TaskTracker/actions/runs/42918195830).

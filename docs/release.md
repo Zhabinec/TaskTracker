@@ -34,7 +34,9 @@ The current public deployment is recorded in [the Render runbook](render-release
 
 ## Install on a phone with HTTPS
 
-The selected platform is Render; the first physical target is Android. Follow
+The selected platform is Render; the current client target is
+[@TaskTrackerPetBot as a Telegram Mini App](telegram.md). Physical Android PWA
+installation is no longer required for this release. Follow
 [the Render deployment and Android checklist](render-release.md). The Blueprint
 provisions the local frontend with CI-gated deployment and health checks. The
 Caddy setup below remains an optional self-hosted alternative.
@@ -83,8 +85,8 @@ Do not delete browser storage or Docker volumes as an update step.
 
 ## Public release acceptance
 
-Software checks are recorded in [verification.md](verification.md). Physical
-Android installation, touch/accessibility text scaling, public TLS and actual
+Software checks are recorded in [verification.md](verification.md). Actual
+Telegram client launch/retention, touch/accessibility text scaling and actual
 deployment upgrade/rollback require their respective environments. Those checks
 are not replaced by desktop browser emulation. Until they are signed off, keep the
 `rc` version designation. Direct dependency/font notices: [dependency-notices.md](dependency-notices.md).
