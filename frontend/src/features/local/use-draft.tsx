@@ -5,6 +5,7 @@ import { openDraft } from "./draft-controller";
 import type { DraftController, DraftSnapshot } from "./draft-controller";
 import type { DraftContent } from "./draft-contracts";
 import styles from "./local.module.css";
+import { Icon } from "@/shared/ui/icon";
 
 const noopSubscribe = () => () => {};
 export function useDraft(slot: string, initial: DraftContent, forcedId?: string) {
@@ -24,6 +25,8 @@ export function DraftFeedback({ draft }: { draft: ReturnType<typeof useDraft> })
   return <>
     {draft.error || actionError ? <div className="form-error" role="alert">{draft.error || actionError}
       <button className={styles.textAction} type="button" disabled={draft.saving} onClick={() => { setActionError(""); void draft.controller?.keepCopy().catch(cause => setActionError(cause instanceof Error ? cause.message : "Could not keep a copy.")); }}>Keep my copy</button>
-    </div> : draft.version > 0 || draft.saving ? <span className={styles.draftStatus} role="status">{draft.dirty || draft.saving ? "Saving draft…" : "Draft saved"}</span> : null}
+    </div> : draft.version > 0 || draft.saving ? <span className={styles.draftStatus} role="status" title={draft.dirty || draft.saving ? "Saving draft…" : "Draft saved"}>
+      <Icon name={draft.dirty || draft.saving ? "loader" : "check"} className={draft.dirty || draft.saving ? "is-spinning" : ""} /><span className="sr-only">{draft.dirty || draft.saving ? "Saving draft…" : "Draft saved"}</span>
+    </span> : null}
   </>;
 }

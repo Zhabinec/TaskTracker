@@ -5,6 +5,7 @@ import type { Draft } from "./draft-contracts";
 import { listDrafts, subscribeDraftChanges } from "./store";
 import { discardSavedDraft } from "./draft-controller";
 import styles from "./local.module.css";
+import { DisclosureSummary } from "@/shared/ui/disclosure-summary";
 
 export function SavedDrafts({ projectId, label = "Saved drafts", onResume }: { projectId: string; label?: string; onResume: (draft: Draft) => void }) {
   const [revision, setRevision] = useState(0); const [limit, setLimit] = useState(100);
@@ -17,7 +18,7 @@ export function SavedDrafts({ projectId, label = "Saved drafts", onResume }: { p
     return () => { active = false; };
   }, [projectId, revision, limit]);
   if (!page.items.length && !error) return null;
-  return <details className={styles.savedDrafts}><summary>{label} ({page.items.length}{page.more ? "+" : ""})</summary>
+  return <details className={styles.savedDrafts}><DisclosureSummary icon="note">{label} ({page.items.length}{page.more ? "+" : ""})</DisclosureSummary>
     {error && <p className="form-error" role="alert">{error}</p>}
     <ul>{page.items.map(draft => <li key={draft.id}>
       <span>{draft.kind === "editor" ? "Edit" : draft.kind === "rename" ? "Rename" : draft.kind === "project" ? "Project" : "New tasks"} · {(draft.data[draft.data.mode] || draft.data.single || draft.data.multiple).slice(0, 70) || "Untitled"}</span>

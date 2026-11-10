@@ -8,6 +8,8 @@ import type { Draft, DraftContent } from "./draft-contracts";
 import { useDraft, DraftFeedback } from "./use-draft";
 import { updateProject } from "./store";
 import styles from "./local.module.css";
+import { Icon } from "@/shared/ui/icon";
+import { DisclosureSummary } from "@/shared/ui/disclosure-summary";
 
 export function ProjectSettings({ project, resumeDraft, onStateChanged }: { project: Project; resumeDraft?: Draft; onStateChanged: (state: "active" | "archived") => void }) {
   const [renaming, setRenaming] = useState(Boolean(resumeDraft)); const [working, setWorking] = useState(false);
@@ -19,10 +21,10 @@ export function ProjectSettings({ project, resumeDraft, onStateChanged }: { proj
     catch (cause) { setError(cause instanceof Error ? cause.message : "Could not update project."); }
     finally { busy.current = false; setWorking(false); }
   }
-  return <details className={styles.projectSettings} open={renaming || undefined}><summary>Project settings</summary>
+  return <details className={styles.projectSettings} open={renaming || undefined}><DisclosureSummary icon="settings">Project settings</DisclosureSummary>
     {renaming ? <RenameProject project={resumeDraft?.project ?? project} draftId={resumeDraft?.id} onClose={() => setRenaming(false)} onSaved={state => { setRenaming(false); onStateChanged(state); }} />
-      : <button type="button" className={styles.textAction} disabled={working} onClick={() => setRenaming(true)}>Rename project</button>}
-    <button type="button" className={styles.textAction} disabled={working || renaming} onClick={() => void changeState()}>{project.state === "archived" ? "Restore project" : "Archive project"}</button>
+      : <button type="button" className={styles.textAction} disabled={working} onClick={() => setRenaming(true)}><Icon name="edit" />Rename project</button>}
+    <button type="button" className={styles.textAction} disabled={working || renaming} onClick={() => void changeState()}><Icon name={project.state === "archived" ? "restore" : "archive"} />{project.state === "archived" ? "Restore project" : "Archive project"}</button>
     {error && <p className="form-error" role="alert">{error}</p>}
   </details>;
 }

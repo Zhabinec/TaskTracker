@@ -8,6 +8,8 @@ import { blankDraftData } from "./draft-contracts";
 import type { DraftContent, DraftReceipt } from "./draft-contracts";
 import { useDraft, DraftFeedback } from "./use-draft";
 import { StatusSelect } from "./status-select";
+import { Icon } from "@/shared/ui/icon";
+import { IconButton } from "@/shared/ui/icon-button";
 import styles from "./local.module.css";
 
 export function TaskComposer({ projectId, draftId, onAdded }: { projectId: string; draftId?: string; onAdded: (count: number, status: TaskStatus) => void }) {
@@ -35,16 +37,17 @@ export function TaskComposer({ projectId, draftId, onAdded }: { projectId: strin
   }
   return <form className={styles.taskForm} aria-label="Add tasks" onSubmit={event => void save(event)}>
     <div className={styles.composerHeading}><label htmlFor="task-title">{multiple ? "Tasks · one per line" : "Task"}</label>
-      <button type="button" className={styles.textAction} aria-pressed={multiple} disabled={saving || !draft.ready} onClick={() => draft.controller?.patch({ mode: multiple ? "single" : "multiple" })}>{multiple ? "Single task" : "Add multiple"}</button></div>
+      <IconButton icon={multiple ? "single" : "list"} label={multiple ? "Single task" : "Add multiple"} className={styles.textAction} aria-pressed={multiple} disabled={saving || !draft.ready} onClick={() => draft.controller?.patch({ mode: multiple ? "single" : "multiple" })} /></div>
     {multiple ? <textarea id="task-title" rows={4} placeholder="One task per line" maxLength={20100} value={title} onChange={event => setTitle(event.target.value)} required disabled={saving || !draft.ready} />
-      : <input id="task-title" placeholder="What needs doing?" maxLength={200} value={title} onChange={event => setTitle(event.target.value)} required disabled={saving || !draft.ready} />}
+      : <input id="task-title" placeholder="Add a task…" maxLength={200} value={title} onChange={event => setTitle(event.target.value)} required disabled={saving || !draft.ready} />}
     <div className={styles.composerFields}>
       <div><label htmlFor="new-task-status">Status</label><StatusSelect id="new-task-status" label="New task status" value={status} onChange={value => draft.controller?.patch({ status: value })} disabled={saving || !draft.ready} /></div>
       <div><label htmlFor="task-due">Due date</label><input id="task-due" type="date" value={dueDate} onChange={event => draft.controller?.patch({ dueDate: event.target.value })} disabled={saving || !draft.ready} /></div>
     </div>
-    <DraftFeedback draft={draft} />
-    {draft.version > 0 && <button type="button" className={styles.textAction} disabled={saving} onClick={() => { void draft.controller?.discard(initial).catch(cause => setError(cause instanceof Error ? cause.message : "Could not discard draft.")); }}>Discard draft</button>}
     {error && <p className="form-error" role="alert">{error}</p>}
-    <button className={`primary ${styles.addButton}`} disabled={saving || !draft.ready} type="submit" aria-label={multiple ? "Add multiple tasks" : "Add task"}>{saving ? "Adding…" : multiple ? `Add ${titles.length} tasks` : "＋ Add"}</button>
+    <div className={styles.composerFooter}><DraftFeedback draft={draft} /><div className={styles.editorActions}>
+    {draft.version > 0 && <IconButton icon="trash" label="Discard draft" className={styles.textAction} disabled={saving} onClick={() => { void draft.controller?.discard(initial).catch(cause => setError(cause instanceof Error ? cause.message : "Could not discard draft.")); }} />}
+    <button className={`primary ${styles.addButton}`} disabled={saving || !draft.ready} type="submit" aria-label={multiple ? "Add multiple tasks" : "Add task"}><Icon name={saving ? "loader" : "plus"} className={saving ? "is-spinning" : ""} />{saving ? "Adding…" : multiple ? `Add ${titles.length}` : "Add"}</button>
+    </div></div>
   </form>;
 }

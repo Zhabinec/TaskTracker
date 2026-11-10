@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { profile, saveProfile } from "./store";
 import styles from "./local.module.css";
+import { Icon } from "@/shared/ui/icon";
 
 export function LocalEntry() {
   const [name, setName] = useState(""); const [existing, setExisting] = useState(false);
@@ -17,7 +18,7 @@ export function LocalEntry() {
     <label htmlFor="display-name">Name</label>
     <input id="display-name" name="name" aria-label="Workspace name" placeholder="Your space" value={name} onChange={event => setName(event.target.value)} maxLength={60} autoComplete="off" disabled={pending || !ready} />
     {error && <p role="alert" className="form-error">{error}</p>}
-    <button className="primary" disabled={pending || !ready} type="submit">{pending ? "Opening…" : !ready ? "Loading…" : existing ? "Continue ↗" : "Get started ↗"}</button>
+    <button className="primary" disabled={pending || !ready} type="submit">{pending ? "Opening…" : !ready ? "Loading…" : existing ? "Continue" : "Get started"}<Icon name={pending || !ready ? "loader" : "arrow"} className={pending || !ready ? "is-spinning" : ""} /></button>
     <details className={styles.finePrint}><summary>Stored in this browser</summary><p>Clearing site data removes your projects. Wait for offline setup before going offline.</p></details>
   </form>;
 }

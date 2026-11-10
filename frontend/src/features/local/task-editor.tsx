@@ -10,6 +10,8 @@ import { DraftFeedback, useDraft } from "./use-draft";
 import { ProjectPicker } from "./project-picker";
 import { StatusSelect } from "./status-select";
 import { Modal } from "@/shared/ui/modal";
+import { Icon } from "@/shared/ui/icon";
+import { DisclosureSummary } from "@/shared/ui/disclosure-summary";
 import styles from "./local.module.css";
 
 export function TaskEditor({ task, draftId, onClose, onSaved }: { task: Task; draftId?: string; onClose: () => void; onSaved: (status: TaskStatus, projectId?: string) => void }) {
@@ -53,7 +55,7 @@ export function TaskEditor({ task, draftId, onClose, onSaved }: { task: Task; dr
     <input id={`edit-due-${task.id}`} type="date" value={dueDate} onChange={event => draft.controller?.patch({ dueDate: event.target.value })} disabled={saving || !draft.ready} />
     <label htmlFor={`edit-status-${task.id}`}>Status</label>
     <StatusSelect id={`edit-status-${task.id}`} label="Task status" value={status} onChange={value => draft.controller?.patch({ status: value })} disabled={saving || !draft.ready} />
-    <details className={styles.taskDetails}><summary>More details</summary><div>
+    <details className={styles.taskDetails}><DisclosureSummary icon="note">More details</DisclosureSummary><div>
     <label htmlFor={`description-${task.id}`}>Description</label>
     <textarea id={`description-${task.id}`} rows={3} maxLength={5000} value={description} onChange={event => draft.controller?.patch({ description: event.target.value })} disabled={saving || !draft.ready} />
     <span className={styles.fieldLabel}>Project</span><ProjectPicker label="Task project" value={destination} onChange={projectId => draft.controller?.patch({ destinationProjectId: projectId })} disabled={saving || !draft.ready} />
@@ -63,7 +65,7 @@ export function TaskEditor({ task, draftId, onClose, onSaved }: { task: Task; dr
     {error && <p id={`edit-error-${task.id}`} className="form-error" role="alert">{error}</p>}
     <div className={styles.editorActions}>
       <button className="secondary" type="button" onClick={() => void cancel()} disabled={saving || !draft.ready}>Cancel</button>
-      <button className="primary" type="submit" disabled={saving || !draft.ready}>{saving ? "Saving…" : "Save"}</button>
+      <button className="primary" type="submit" disabled={saving || !draft.ready}><Icon name={saving ? "loader" : "check"} className={saving ? "is-spinning" : ""} />{saving ? "Saving…" : "Save"}</button>
     </div>
   </form></Modal>;
 }

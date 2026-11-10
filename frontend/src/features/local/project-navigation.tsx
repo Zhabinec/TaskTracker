@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import type { Project } from "./contracts";
 import { ProjectComposer } from "./project-composer";
 import { WorkspaceBackupControls } from "./workspace-backup";
+import { Icon } from "@/shared/ui/icon";
 import styles from "./local.module.css";
 
 type Props = {
@@ -28,17 +29,17 @@ export function ProjectNavigation({ projects, selected, archived, more, onSelect
         {!projects.length && <option value="">{archived ? "Archived projects" : "No projects"}</option>}
         {projects.map(project => <option key={project.id} value={project.id}>{project.name}</option>)}
       </select>
-      <button ref={toggle} type="button" className={styles.textAction} aria-expanded={showManagement} aria-controls="project-management" onClick={() => setExpanded(value => !value)}>Manage</button>
+      <button ref={toggle} type="button" className={`icon-button ${styles.textAction}`} aria-label="Manage" title="Manage projects" aria-expanded={showManagement} aria-controls="project-management" onClick={() => setExpanded(value => !value)}><Icon name="settings" /></button>
     </div>
     <div id="project-management" className={showManagement ? styles.projectManagement : `${styles.projectManagement} ${styles.managementCollapsed}`}>
       <div className={styles.sectionLabel}><h2>{archived ? "Archived" : "My projects"}</h2><span>{projects.length}{more ? "+" : ""}</span></div>
-      <button type="button" className={styles.textAction} onClick={onToggleArchive}>{archived ? "Active projects" : "Archived projects"}</button>
+      <button type="button" className={styles.textAction} onClick={onToggleArchive}><Icon name={archived ? "folder" : "archive"} />{archived ? "Active projects" : "Archived projects"}</button>
       <div className={styles.projectList}>{projects.map(project => <button key={project.id} className={styles.project} aria-pressed={selected === project.id} onClick={() => onSelect(project.id)}>
         <span className={styles.dot} data-color={project.color} aria-hidden="true" /><span className={styles.projectName}>{project.name}</span><span className={styles.projectCount}>{project.taskCount}</span>
       </button>)}</div>
       {more && <button className={`secondary ${styles.loadMore}`} onClick={onMore}>More projects</button>}
       <ProjectComposer onAdded={project => {
-        if (window.matchMedia("(max-width: 680px)").matches) toggle.current?.focus();
+        if (window.matchMedia("(max-width: 900px)").matches) toggle.current?.focus();
         setExpanded(false); onCreated(project);
       }} />
       <WorkspaceBackupControls />

@@ -11,7 +11,7 @@ Use the existing CSS variables and CSS Modules; keep client interactions in smal
 
 - One clear primary action per form. Hide secondary detail until needed.
 - The task card, including its status/date area, opens an Edit task dialog. Show a
-  persistent Edit hint and a readable status badge; the badge does not cycle state.
+  persistent pencil hint and a readable status badge; the badge does not cycle state.
   Title, due date and status are immediately available; description and destination
   stay under More details. Save explicitly; Cancel, the close button or Escape
   discards the edit draft. Reload preserves it for recovery through Saved drafts.
@@ -48,6 +48,18 @@ Use the existing CSS variables and CSS Modules; keep client interactions in smal
 - Keep completed/total progress available below 1100px as a compact board summary.
   Bulk move feedback uses the committed count; moving to the current project must
   never claim a status change.
+- Use the shared SVG Icon/IconButton and DisclosureSummary primitives. Icons use
+  one 24-unit grid and consistent strokes; icon-only buttons retain accessible
+  names, native title hints and at least 44px touch targets. Center icons with flex,
+  not font-glyph baselines. Keep status names, errors and destructive confirmations
+  readable in text. Search uses one label instead of a label/placeholder repeat.
+- Use 160ms feedback and 280ms entrance tokens with an ease-out curve. Animate
+  panel/list/dialog entrance, not every task on each update. Disable motion for
+  reduced-motion preferences. Desktop panel gaps are 28px; compact project
+  navigation extends to 900px so tablet task content has space.
+- Autosave and offline-ready indicators can be compact icons with accessible status
+  text; loading, failures, retry and app updates remain discoverable. Related form
+  controls use consistent heights and spacing; retain 16px phone input text.
 
 ## Sources and tools
 

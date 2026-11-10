@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { backupLimit, parseBackup } from "./backup";
 import { exportWorkspace, importWorkspace } from "./store";
 import styles from "./local.module.css";
+import { Icon } from "@/shared/ui/icon";
+import { DisclosureSummary } from "@/shared/ui/disclosure-summary";
 
 export function WorkspaceBackupControls() {
   const [preview, setPreview] = useState<{ source: string; projects: number; tasks: number }>();
@@ -14,14 +16,14 @@ export function WorkspaceBackupControls() {
     try { await action(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Backup operation failed."); }
     finally { busy.current = false; setWorking(false); }
   }
-  return <details className={styles.backups}><summary>Backups</summary>
+  return <details className={styles.backups}><DisclosureSummary icon="download">Backups</DisclosureSummary>
     <div className={styles.backupActions}>
       <button className="secondary" disabled={working} onClick={() => void run(async () => {
         const source = await exportWorkspace(); const url = URL.createObjectURL(new Blob([source], { type: "application/json" }));
         const link = document.createElement("a"); link.href = url; link.download = `tasktracker-${new Date().toISOString().slice(0, 10)}.json`;
         document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
         setMessage("Backup download started.");
-      })}>Export backup</button>
+      })}><Icon name="download" />Export backup</button>
       <label htmlFor="backup-file">Import backup</label><input ref={file} id="backup-file" type="file" accept=".json,application/json" disabled={working} onChange={event => {
         const selected = event.target.files?.[0]; setPreview(undefined);
         if (!selected) return;

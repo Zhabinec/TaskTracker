@@ -8,6 +8,7 @@ import type { DraftContent } from "./draft-contracts";
 import { useDraft, DraftFeedback } from "./use-draft";
 import { createProject } from "./store";
 import { SavedDrafts } from "./saved-drafts";
+import { Icon } from "@/shared/ui/icon";
 import styles from "./local.module.css";
 
 export function ProjectComposer({ onAdded }: { onAdded: (project: Project) => void }) {
@@ -27,6 +28,6 @@ function ProjectForm({ onAdded, draftId }: { onAdded: (project: Project) => void
   }
   return <><form className={styles.inlineForm} onSubmit={event => void save(event)}><label htmlFor="project-name">New project</label>
     <input id="project-name" placeholder="Name" maxLength={100} required value={draft.content.data.single} onChange={event => draft.controller?.patch({ single: event.target.value })} disabled={working || !draft.ready} />
-    <button className="secondary" disabled={working || !draft.ready} type="submit" aria-label="Create project" title="Create project">＋</button>
+    <button className="secondary" disabled={working || !draft.ready} type="submit" aria-label="Create project" title="Create project"><Icon name="plus" /></button>
   </form><DraftFeedback draft={draft} />{error && <p className="form-error" role="alert">{error}</p>}</>;
 }

@@ -8,6 +8,8 @@ import { changeTasks, moveTasks } from "./store";
 import { StatusSelect } from "./status-select";
 import { TaskEditor } from "./task-editor";
 import { TaskCard } from "./task-card";
+import { Icon } from "@/shared/ui/icon";
+import { IconButton } from "@/shared/ui/icon-button";
 import styles from "./local.module.css";
 
 export function TaskList({ tasks, resumeDraft, emptyLabel, readOnly = false, onChanged }: { tasks: Task[]; resumeDraft?: Draft; emptyLabel: string; readOnly?: boolean; onChanged: (change: TaskChange) => void }) {
@@ -46,9 +48,9 @@ export function TaskList({ tasks, resumeDraft, emptyLabel, readOnly = false, onC
     finally { busy.current = false; setWorking(false); }
   }
   return <>
-    {!visibleTasks.length && <div className={styles.empty}><span className={styles.emptyIcon} aria-hidden="true">✧</span><strong>{emptyLabel}</strong></div>}
+    {!visibleTasks.length && <div className={styles.empty}><span className={styles.emptyIcon}><Icon name="checked" /></span><strong>{emptyLabel}</strong></div>}
     {visibleTasks.length > 0 && !readOnly && <div className={styles.selectionBar}>
-      <button type="button" className={styles.textAction} disabled={working || Boolean(editing)} aria-pressed={selecting} onClick={() => { setSelecting(value => !value); setSelected([]); setDeleting([]); setError(""); }}>{selecting ? "Cancel selection" : "Select tasks"}</button>
+      <button type="button" className={styles.textAction} disabled={working || Boolean(editing)} aria-pressed={selecting} onClick={() => { setSelecting(value => !value); setSelected([]); setDeleting([]); setError(""); }}><Icon name={selecting ? "close" : "checked"} />{selecting ? "Cancel selection" : "Select tasks"}</button>
       {selecting && <button className={styles.textAction} disabled={working} onClick={() => { setSelected(tasks.slice(0, 100)); setDeleting([]); }}>Select loaded ({Math.min(tasks.length, 100)})</button>}
     </div>}
     {selecting && <div className={styles.bulkBar} aria-label="Selected tasks">
@@ -68,7 +70,7 @@ export function TaskList({ tasks, resumeDraft, emptyLabel, readOnly = false, onC
     <ul className={styles.taskList}>{visibleTasks.map(task => <li key={task.id} className={styles.task}>
       {selecting && <label className={styles.selectionTarget}><input type="checkbox" aria-label={`Select task: ${task.title}`} checked={selected.some(value => value.id === task.id)} disabled={working || (selected.length >= 100 && !selected.some(value => value.id === task.id))} onChange={event => { setDeleting([]); setSelected(current => event.target.checked ? [...current, task] : current.filter(value => value.id !== task.id)); }} /></label>}
       <div className={styles.taskContent}><TaskCard task={task} readOnly={readOnly} disabled={working || selecting || Boolean(editing)} onEdit={() => { setEditing(task); setDeleting([]); }} /></div>
-      {!selecting && !readOnly && <button id={`delete-task-${task.id}`} className={styles.delete} disabled={working || Boolean(editing)} aria-label={`Delete task: ${task.title}`} onClick={() => { deleteOrigin.current = `delete-task-${task.id}`; setDeleting([task]); }}>×</button>}
+      {!selecting && !readOnly && <IconButton id={`delete-task-${task.id}`} icon="trash" className={styles.delete} disabled={working || Boolean(editing)} label={`Delete task: ${task.title}`} onClick={() => { deleteOrigin.current = `delete-task-${task.id}`; setDeleting([task]); }} />}
     </li>)}</ul>
     {editing && !readOnly && <TaskEditor key={editing.id} task={editing} draftId={resumeDraft?.task?.id === editing.id ? resumeDraft.id : undefined} onClose={closeEditor} onSaved={(status, projectId) => onChanged({ kind: "saved", count: 1, status, projectId })} />}
   </>;

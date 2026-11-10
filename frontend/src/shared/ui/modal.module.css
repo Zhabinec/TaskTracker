@@ -2,7 +2,7 @@
   width: min(520px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   margin: auto;
-  padding: 24px;
+  padding: 28px;
   border: 1px solid var(--line);
   border-radius: 24px;
   color: var(--ink);
@@ -12,9 +12,9 @@
   overscroll-behavior: contain;
 }
 .modal::backdrop { background: #33283e52; backdrop-filter: blur(6px); }
-.modal[open] { animation: arrive .16s ease-out; }
+.modal[open] { animation: arrive var(--motion-enter) var(--ease-out); }
 @keyframes arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-.header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
 .header h2 { margin: 0; font-size: 22px; letter-spacing: -.035em; }
 .header button { min-width: var(--control-size); min-height: var(--control-size); padding: 8px; font-size: 22px; }
-@media(max-width:680px) { .modal { padding: 20px; } }
+@media(max-width:680px) { .modal { padding: 24px; } }

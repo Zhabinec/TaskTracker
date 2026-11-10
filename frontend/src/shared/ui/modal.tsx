@@ -3,6 +3,7 @@
 import { useId, useLayoutEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { IconButton } from "./icon-button";
 import styles from "./modal.module.css";
 
 export function Modal({ title, children, onRequestClose, closeDisabled = false }: {
@@ -21,7 +22,7 @@ export function Modal({ title, children, onRequestClose, closeDisabled = false }
     event.preventDefault(); if (!closeDisabled) onRequestClose();
   }}>
     <header className={styles.header}><h2 id={titleId}>{title}</h2>
-      <button type="button" className="secondary" aria-label={`Close ${title.toLowerCase()}`} disabled={closeDisabled} onClick={onRequestClose}>×</button>
+      <IconButton icon="close" label={`Close ${title.toLowerCase()}`} className="secondary" disabled={closeDisabled} onClick={onRequestClose} />
     </header>
     {children}
   </dialog>, document.body);

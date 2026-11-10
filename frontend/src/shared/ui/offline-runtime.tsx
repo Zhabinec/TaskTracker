@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { flushDrafts } from "@/features/local/draft-controller";
+import { Icon } from "./icon";
+import { IconButton } from "./icon-button";
 
 export function OfflineRuntime() {
   const [attempt, setAttempt] = useState(0);
@@ -42,6 +44,8 @@ export function OfflineRuntime() {
     })().catch(() => { if (active) setStatus("Offline setup unavailable"); });
     return () => { active = false; navigator.serviceWorker.removeEventListener("controllerchange", change); };
   }, [attempt]);
-  if (waiting?.waiting) return <div className="glass runtime-notice" role="status">Update available<button className="secondary" disabled={updating} onClick={() => { setUpdating(true); setUpdateError(""); void flushDrafts().then(() => { reload.current = true; waiting.waiting?.postMessage("SKIP_WAITING"); }).catch(() => { setUpdateError("Save your draft before updating."); setUpdating(false); }); }}>{updating ? "Saving…" : "Update"}</button>{updateError && <span role="alert">{updateError}</span>}</div>;
-  return status ? <div className="glass runtime-notice" role="status"><span aria-hidden="true">◈</span>{status}{status === "Offline setup unavailable" && <button className="secondary" onClick={() => setAttempt(value => value + 1)}>Retry offline setup</button>}<button className="secondary" aria-label="Dismiss" onClick={() => setStatus("")}>×</button></div> : null;
+  if (waiting?.waiting) return <div className="glass runtime-notice" role="status"><Icon name="restore" /><span className="sr-only">Update available</span><button className="secondary" disabled={updating} onClick={() => { setUpdating(true); setUpdateError(""); void flushDrafts().then(() => { reload.current = true; waiting.waiting?.postMessage("SKIP_WAITING"); }).catch(() => { setUpdateError("Save your draft before updating."); setUpdating(false); }); }}>{updating ? "Saving…" : "Update"}</button>{updateError && <span role="alert">{updateError}</span>}</div>;
+  return status ? <div className="glass runtime-notice" data-state={status === "Offline ready" ? "ready" : "pending"} role="status" title={status}>
+    <Icon name={status === "Offline ready" ? "ready" : "loader"} className={status === "Preparing offline…" ? "is-spinning" : ""} /><span className={status === "Offline ready" ? "sr-only" : undefined}>{status}</span>
+    {status === "Offline setup unavailable" && <button className="secondary" onClick={() => setAttempt(value => value + 1)}>Retry offline setup</button>}<IconButton icon="close" label="Dismiss" onClick={() => setStatus("")} /></div> : null;
 }

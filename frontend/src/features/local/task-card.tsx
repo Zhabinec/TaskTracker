@@ -1,5 +1,6 @@
 import type { Task } from "./contracts";
 import { statusLabels } from "./contracts";
+import { Icon } from "@/shared/ui/icon";
 import styles from "./local.module.css";
 
 export function TaskCard({ task, disabled, readOnly, onEdit }: { task: Task; disabled: boolean; readOnly: boolean; onEdit: () => void }) {
@@ -8,8 +9,8 @@ export function TaskCard({ task, disabled, readOnly, onEdit }: { task: Task; dis
     {task.description && <span className={styles.taskDescription}>{task.description}</span>}
     <span className={styles.taskMeta}>
       <span className={styles.statusBadge} data-status={task.status} aria-label={`Status: ${task.title}`}>{statusLabels[task.status]}</span>
-      {task.dueDate && <time dateTime={task.dueDate}>{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(`${task.dueDate}T12:00:00`))}</time>}
-      {!readOnly && <span className={styles.editHint} aria-hidden="true">Edit ↗</span>}
+      {task.dueDate && <time dateTime={task.dueDate}><Icon name="calendar" />{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(`${task.dueDate}T12:00:00`))}</time>}
+      {!readOnly && <span className={styles.editHint} aria-hidden="true"><Icon name="edit" /></span>}
     </span>
   </button>;
 }

@@ -1,5 +1,32 @@
 import { expect, test } from "@playwright/test";
 
+test("icon actions stay centered across viewport sizes and respect reduced motion", async ({ page }) => {
+  await page.goto("/login"); await page.getByRole("button", { name: "Get started" }).click();
+  await page.getByLabel("New project", { exact: true }).fill("Visual workspace");
+  await page.getByRole("button", { name: "Create project", exact: true }).click();
+  await page.getByLabel("Task", { exact: true }).fill("A task with a clear edit action");
+  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Edit task: A task with a clear edit action", exact: true })).toBeVisible();
+  for (const width of [320, 390, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const actions = await page.locator("button.icon-button").evaluateAll(elements => elements.filter(element => element.getBoundingClientRect().width > 0).map(element => {
+      const button = element.getBoundingClientRect(); const icon = element.querySelector("svg")!.getBoundingClientRect();
+      return { label: element.getAttribute("aria-label"), width: button.width, height: button.height, x: Math.abs(button.x + button.width / 2 - icon.x - icon.width / 2), y: Math.abs(button.y + button.height / 2 - icon.y - icon.height / 2) };
+    }));
+    for (const action of actions) { expect(action.label).toBeTruthy(); expect(action.width).toBeGreaterThanOrEqual(44); expect(action.height).toBeGreaterThanOrEqual(44); expect(action.x).toBeLessThanOrEqual(1); expect(action.y).toBeLessThanOrEqual(1); }
+    if ([390, 768, 1440].includes(width)) await page.screenshot({ path: `test-results/visual-workspace-${width}.png`, fullPage: true, animations: "disabled" });
+  }
+  await page.getByRole("button", { name: "Edit task: A task with a clear edit action", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Edit task", exact: true });
+  await expect(dialog).toBeVisible();
+  expect(await dialog.evaluate(element => getComputedStyle(element).animationName)).not.toBe("none");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect(await dialog.evaluate(element => getComputedStyle(element).animationName)).toBe("none");
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+});
+
 test("the task surface opens a focused dialog and saves title, date and status together", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/login"); await page.getByRole("button", { name: "Get started" }).click();

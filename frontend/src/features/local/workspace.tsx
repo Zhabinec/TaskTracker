@@ -12,6 +12,8 @@ import type { Draft } from "./draft-contracts";
 import { TaskList } from "./task-list";
 import { TaskComposer } from "./task-composer";
 import { statusLabels as labels } from "./contracts";
+import { Icon } from "@/shared/ui/icon";
+import { IconButton } from "@/shared/ui/icon-button";
 
 function friendlyError(cause: unknown) { return cause instanceof Error ? cause.message : "Something went wrong. Please retry."; }
 
@@ -63,14 +65,14 @@ export function LocalWorkspace() {
     } else if (change.kind === "deleted") setNotice({ scope: selected, text: `${subject} deleted` });
     else if (change.kind === "saved") setNotice({ scope: selected, text: `${subject} saved in ${labels[change.status]}`, status: change.status });
   }
-  if (!owner) return <main className={styles.shell}><a className="brand" href="/login"><span className="brand-mark" aria-hidden="true">✳</span> TaskTracker</a>
+  if (!owner) return <main className={styles.shell}><a className="brand" href="/login"><Icon name="brand" className="brand-mark" />TaskTracker</a>
     <div className={`glass ${styles.empty}`} role="status">{error || "Loading…"}{error && <button type="button" className={styles.textAction} onClick={() => setRevision(value => value + 1)}>Retry workspace</button>}</div></main>;
   const project = currentProject;
   const total = project?.taskCount ?? 0; const done = project?.doneCount ?? 0;
   const tasksReady = taskPage.ready;
   const date = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", weekday: "long" }).format(new Date());
   return <main className={styles.shell}>
-    <header className={styles.header}><a className="brand" href="/projects"><span className="brand-mark" aria-hidden="true">✳</span> TaskTracker</a>
+    <header className={styles.header}><a className="brand" href="/projects"><Icon name="brand" className="brand-mark" />TaskTracker</a>
       <div className={styles.headerRight}>
         <a className={styles.profile} href="/login" aria-label="Workspace settings"><span className={styles.avatar}>{owner.name.slice(0, 1).toUpperCase()}</span><span>{owner.name}</span></a>
       </div></header>
@@ -89,17 +91,17 @@ export function LocalWorkspace() {
           <ProjectSettings key={`${project.id}:${resumed?.kind === "rename" ? resumed.id : ""}`} resumeDraft={resumed?.kind === "rename" ? resumed : undefined} project={project} onStateChanged={state => { setResumed(undefined); setCurrentProject({ ...project, state }); setArchived(state === "archived"); }} />
           {project.state === "archived" && <p className={styles.draftStatus}>Archived · restore to make changes</p>}
           <div className={styles.tabs} aria-label="Filter tasks">{(["all", "Todo", "InProgress", "Done"] as const).map(status => <button key={status} aria-pressed={filter === status} onClick={() => { setResumed(undefined); setNotice(undefined); setFilter(status); setSearch(""); setDueFilter("all"); }}>{status === "all" ? "All" : labels[status]}</button>)}</div>
-          <div className={styles.searchRow}><label className={styles.searchField}>Search tasks<input type="search" aria-label="Search tasks" maxLength={200} placeholder="Search tasks" value={search} onChange={event => setSearch(event.target.value)} /></label>
+          <div className={styles.searchRow}><label className={styles.searchField}><Icon name="search" /><input type="search" aria-label="Search tasks" maxLength={200} placeholder="Search" value={search} onChange={event => setSearch(event.target.value)} /></label>
             <select className={styles.statusSelect} aria-label="Due date filter" value={dueFilter} onChange={event => setDueFilter(event.target.value as DueFilter)}><option value="all">All dates</option><option value="today">Due today</option><option value="overdue">Overdue</option><option value="upcoming">Upcoming</option><option value="undated">No date</option></select>
           </div>
           {taskPage.error && <p className="form-error" role="alert">{taskPage.error}<button className={styles.textAction} onClick={taskPage.retry}>Retry tasks</button></p>}
-          {notice?.scope === selected && <div className={styles.actionNotice} role="status"><span>{notice.text}</span>{notice.projectId && <button className={styles.textAction} onClick={() => { setArchived(false); setSelected(notice.projectId!); setFilter("all"); setResumed(undefined); }}>View project</button>}{notice.status && filter !== "all" && filter !== notice.status && <button className={styles.textAction} onClick={() => { setFilter(notice.status!); setSearch(""); setDueFilter("all"); }}>View {labels[notice.status]}</button>}<button className={styles.textAction} aria-label="Dismiss task notice" onClick={() => setNotice(undefined)}>×</button></div>}
+          {notice?.scope === selected && <div className={styles.actionNotice} role="status"><Icon name="check" /><span>{notice.status ? <><span className="sr-only">{notice.text}</span><span aria-hidden="true">Saved · {labels[notice.status]}</span></> : notice.text}</span>{notice.projectId && <button className={styles.textAction} onClick={() => { setArchived(false); setSelected(notice.projectId!); setFilter("all"); setResumed(undefined); }}>View project<Icon name="arrow" /></button>}{notice.status && filter !== "all" && filter !== notice.status && <button className={styles.textAction} onClick={() => { setFilter(notice.status!); setSearch(""); setDueFilter("all"); }}>View {labels[notice.status]}<Icon name="arrow" /></button>}<IconButton icon="close" className={styles.textAction} label="Dismiss task notice" onClick={() => setNotice(undefined)} /></div>}
           {!tasksReady && <p role="status" className={styles.draftStatus}>Loading tasks…</p>}
           <TaskList key={`${selected}:${filter}:${resumed?.kind === "editor" ? resumed.id : ""}`} resumeDraft={resumed?.kind === "editor" ? resumed : undefined} readOnly={project.state === "archived"} emptyLabel={search || dueFilter !== "all" ? taskPage.more ? "No matches yet" : "No matching tasks" : filter === "all" ? "No tasks yet" : `No ${labels[filter].toLowerCase()} tasks`} tasks={taskPage.ready ? taskPage.items : taskPage.items.filter(task => task.projectId === selected && (filter === "all" || task.status === filter))} onChanged={taskChanged} />
           {tasksReady && taskPage.more && <button className={`secondary ${styles.loadMore}`} disabled={taskPage.loadingMore} onClick={() => void taskPage.moreTasks()}>More tasks</button>}
           {project.state !== "archived" && <SavedDrafts key={selected} projectId={selected} onResume={value => { setResumed(value); if (value.kind === "editor") { setFilter("all"); setSearch(""); setDueFilter("all"); } }} />}
           {project.state !== "archived" && <TaskComposer key={`${selected}:${resumed?.kind === "composer" ? resumed.id : ""}`} draftId={resumed?.kind === "composer" ? resumed.id : undefined} projectId={selected} onAdded={(count, status) => { setFilter("all"); setSearch(""); setDueFilter("all"); taskChanged({ kind: "saved", count, status }); }} />}
-        </> : <div className={styles.empty}><span className={styles.emptyIcon} aria-hidden="true">✳</span><strong>{archived ? "No archived projects" : "Create a project"}</strong></div>}
+        </> : <div className={styles.empty}><span className={styles.emptyIcon}><Icon name="folder" /></span><strong>{archived ? "No archived projects" : "Create a project"}</strong></div>}
       </section>
       <aside className={styles.right}><ProjectProgress total={total} done={done} /></aside>
     </div>
