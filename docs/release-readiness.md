@@ -60,13 +60,15 @@ create additional copies; this is not a merge or automatic synchronization.
 1. Physical Android installed PWA lifecycle, touch targets and accessibility text
    scaling. Recovery cannot be promised after forced OS termination while storage
    rejects writes.
-2. A live Render deployment with working public TLS, phone installation and rehearsal
-   of the production update/rollback procedure with existing data. The Docker
-   Blueprint and [Android/Render runbook](render-release.md) are prepared; account
-   connection, actual deployment and physical acceptance remain pending.
-3. Verify the prepared CI jobs on the configured GitHub remote. The remote is
-   connected and earlier successful runs exist. Verify the exact release SHA;
-   unrelated runs and local verification do not establish its CI success.
+2. Rehearse an actual Render deployment update/rollback with existing data and
+   accept phone installation. Public TLS is verified at
+   [the acceptance deployment](https://tasktracker-7wc0.onrender.com); live SHA
+   `83052ef` has successful backend/frontend/database/containers
+   [CI checks](https://github.com/Zhabinec/TaskTracker/actions/runs/42918195830).
+3. Investigate intermittent WebKit first-start Offline ready timeouts observed
+   during concurrent public-origin browser runs. Isolated passing checks do not
+   establish that the initial failures are fixed. Select paid Render compute
+   before public production; the current Free service is for acceptance.
 
 The candidate can be tested locally now. Public 1.0 requires these environmental
 checks; cloud Workspace/sync remains a separately scoped future release.

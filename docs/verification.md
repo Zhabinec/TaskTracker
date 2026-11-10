@@ -262,3 +262,35 @@ CI обновлён: optional cloud stack проверяется отдельн�
 - Документирован реальный Android install/offline/backup/text-scale checklist и
   update/rollback rehearsal с build IDs и сохранёнными данными. Публичный TLS,
   физическая приёмка и откат остаются pending до выполнения в окружении Render.
+
+## 2026-11-11 — проверка опубликованной сборки Render
+
+- Через существующий Blueprint в Dashboard подтверждён Live deploy
+  `dep-dbpq83oae00c73capdt0` сервиса `srv-dbpq83gae00c73capcng`, SHA `83052ef`.
+  Адрес: https://tasktracker-7wc0.onrender.com. Все четыре jobs этого SHA прошли:
+  https://github.com/Zhabinec/TaskTracker/actions/runs/42918195830.
+- Test-Deployment.ps1 успешно проверил публичный HTTPS, health endpoints,
+  некешируемые worker/build metadata, manifest, страницы, иконки и локальные fonts.
+  Повторная проверка с ExpectedBuild подтвердила тот же build
+  `1e8b5913-12c6-4c15-ae38-6535aa08a8e1`. В in-app browser приложение загрузилось
+  и показало Offline ready. TLS не обходился, пользовательское хранилище не очищалось.
+- Production E2E выполнялись непосредственно против HTTPS Render в изолированных
+  browser contexts. local.spec: 31 passed, 2 failed (5.4m), один worker;
+  drafts/lifecycle/usability: 50 passed, 1 failed (4.2m), два workers одновременно
+  с первым прогоном. Chromium и Firefox: по 28/28 passed. WebKit: 25/28 passed.
+- Три WebKit failures ожидали Offline ready: первый быстрый вход, первый startup
+  перед worker update и rename/archive lifecycle. Диагностика первых двух содержала
+  заполненный shell cache и worker/controller в состоянии activating. В lifecycle
+  достигнут общий test timeout. Во время проверки наблюдалась высокая CPU-нагрузка
+  WebKit-контейнера; это наблюдение, а не установленная причина сбоя.
+- После завершения обоих контейнеров три проблемных сценария повторены по два раза
+  последовательно в WebKit, workers=1, без изменения приложения, ожиданий или retries:
+  6 passed (1.5m). Это не исправление и не чистый полный повтор всех 84 сценариев.
+  Нестабильность первой подготовки WebKit оставлена открытым критерием приёмки.
+- Проверены проекты/задачи, offline reload/edit, bulk/status/moves, backups,
+  draft recovery/conflicts, archive/search/pagination и мобильные размеры/центрирование.
+  Update E2E регистрируют worker другой версии в browser context; они не заменяют
+  фактический deploy B/rollback A в Render. Физический Android также ещё не проверен.
+- Девять fault-proxy сценариев из pwa-startup.spec выполнялись в прежней CI/local
+  матрице, а не против HTTPS: существующий loopback proxy использует HTTP upstream.
+  Код приложения и IndexedDB в этой проверке не менялись. Free compute сохранён.

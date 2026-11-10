@@ -5,6 +5,20 @@ drafts stay in browser IndexedDB. Identity/PostgreSQL and the future Workspace
 service are not required. No Render disk is needed: container restarts do not
 touch device data.
 
+## Current acceptance deployment
+
+- App: [tasktracker-7wc0.onrender.com](https://tasktracker-7wc0.onrender.com).
+- Service: `srv-dbpq83gae00c73capcng`, Blueprint `exs-dbpq7r56e07s73b5b5jg`.
+- Live deploy: `dep-dbpq83oae00c73capdt0`, Git commit `83052ef`.
+- Shell build: `1e8b5913-12c6-4c15-ae38-6535aa08a8e1`.
+- [Release CI](https://github.com/Zhabinec/TaskTracker/actions/runs/42918195830):
+  backend, frontend, database and containers all succeeded.
+
+On November 11, public HTTPS smoke checks passed and the app displayed Offline
+ready in the in-app browser. Physical Android and an actual Render deployment
+update/rollback remain pending. See [verification](verification.md) for browser
+results, including WebKit startup timeouts during concurrent runs.
+
 ## Provision
 
 1. Connect Render to `Zhabinec/TaskTracker` through its GitHub integration. Inspect
