@@ -65,14 +65,12 @@ create additional copies; this is not a merge or automatic synchronization.
 2. Actual Render A→B→A update/rollback passed with retained tasks, IDs, counters,
    two creation drafts, identical backup data and offline reload. Public TLS is verified at
    [the acceptance deployment](https://tasktracker-7wc0.onrender.com); live SHA
-   `5e38bd9` has successful backend/frontend/database/containers
-   [CI checks](https://github.com/Zhabinec/TaskTracker/actions/runs/42925646820).
-   Automatic delivery remains pending: Render's Git provider is not connected.
-   After CI Checks Pass was restored after the rehearsal; connect GitHub and verify
-   the next checked commit deploys without manual action.
+   `6651ea7` passed [CI](https://github.com/Zhabinec/TaskTracker/actions/runs/42932290143)
+   and deployed automatically after the owner connected GitHub.
 3. Investigate intermittent WebKit first-start Offline ready timeouts observed
-   during concurrent public-origin browser runs. Isolated passing checks do not
-   establish that the initial failures are fixed. Select paid Render compute
+   during concurrent public-origin browser runs. The subsequent full sequential
+   public WebKit run passed 28/28. The concurrent failure remains unexplained.
+   Select paid Render compute
    before public production; the current Free service is for acceptance.
 
 The candidate can be tested locally now. Public 1.0 requires these environmental

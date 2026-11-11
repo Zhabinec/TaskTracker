@@ -9,9 +9,9 @@ touch device data.
 
 - App: [tasktracker-7wc0.onrender.com](https://tasktracker-7wc0.onrender.com).
 - Service: `srv-dbpq83gae00c73capcng`, Blueprint `exs-dbpq7r56e07s73b5b5jg`.
-- Live deploy after rollback rehearsal: `dep-dbprc69srm7s738kcfn0`, Git commit `5e38bd9`.
-- Shell build: `7c0f4d23-2710-4d12-9596-85128dbe55f6`.
-- [Release CI](https://github.com/Zhabinec/TaskTracker/actions/runs/42925646820):
+- Live automatic deploy: `dep-dbprl1bncjis73ccgki0`, Git commit `6651ea7`.
+- Shell build: `1e4e7670-3bda-4419-867d-48d1190105ed`.
+- [Release CI](https://github.com/Zhabinec/TaskTracker/actions/runs/42932290143):
   backend, frontend, database and containers all succeeded.
 
 On November 11, public HTTPS smoke checks passed and the app displayed Offline
@@ -50,9 +50,8 @@ do not add `npm start`, Caddy, Compose or a database to the Render service.
 
 The November 11 Telegram release did not start automatically after its successful
 CI run. Dashboard later showed After CI Checks Pass selected but no connected
-Git provider: Update Source → Git Provider displayed Connect Git provider. Connect
-GitHub and select this repository before relying on unattended deployments. The
-After CI Checks Pass setting was restored after the rollback rehearsal.
+Git provider. After the owner connected GitHub and After CI Checks Pass was
+restored, `6651ea7` passed CI and went Live with the Auto-Deploy trigger.
 
 `RENDER_EXTERNAL_URL` supplies the default trusted origin for the optional Identity
 boundary. Set `APP_ORIGIN=https://your-custom-host` explicitly if a custom domain is
