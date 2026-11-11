@@ -106,6 +106,25 @@ test("offline shell works on the first local setup and preserves project isolati
   await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
 });
 
+test("workspace loading indicator is present before hydration and respects reduced motion", async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto("/projects");
+    const loader = page.getByRole("status").filter({ hasText: "Opening workspace…" });
+    await expect(loader).toBeVisible();
+    const orbit = loader.locator("[aria-hidden=true]").first();
+    const animation = () => orbit.evaluate(element => getComputedStyle(element, "::after").animationName);
+    await expect.poll(animation).not.toBe("none");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect.poll(animation).toBe("none");
+    await expect(loader).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
 test("glass interface is responsive and respects reduced motion", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });

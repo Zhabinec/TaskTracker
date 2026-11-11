@@ -66,7 +66,12 @@ export function LocalWorkspace() {
     else if (change.kind === "saved") setNotice({ scope: selected, text: `${subject} saved in ${labels[change.status]}`, status: change.status });
   }
   if (!owner) return <main className={styles.shell}><a className="brand" href="/login"><Icon name="brand" className="brand-mark" />TaskTracker</a>
-    <div className={`glass ${styles.empty}`} role="status">{error || "Loading…"}{error && <button type="button" className={styles.textAction} onClick={() => setRevision(value => value + 1)}>Retry workspace</button>}</div></main>;
+    {error ? <div className={`glass ${styles.empty}`} role="alert">{error}<button type="button" className={styles.textAction} onClick={() => setRevision(value => value + 1)}>Retry workspace</button></div> :
+      <div className={`glass ${styles.workspaceLoading}`} role="status">
+        <span className={styles.loadingMark} aria-hidden="true"><Icon name="brand" /></span>
+        <span>Opening workspace…</span>
+      </div>}
+  </main>;
   const project = currentProject;
   const total = project?.taskCount ?? 0; const done = project?.doneCount ?? 0;
   const tasksReady = taskPage.ready;
@@ -96,7 +101,7 @@ export function LocalWorkspace() {
           </div>
           {taskPage.error && <p className="form-error" role="alert">{taskPage.error}<button className={styles.textAction} onClick={taskPage.retry}>Retry tasks</button></p>}
           {notice?.scope === selected && <div className={styles.actionNotice} role="status"><Icon name="check" /><span>{notice.status ? <><span className="sr-only">{notice.text}</span><span aria-hidden="true">Saved · {labels[notice.status]}</span></> : notice.text}</span>{notice.projectId && <button className={styles.textAction} onClick={() => { setArchived(false); setSelected(notice.projectId!); setFilter("all"); setResumed(undefined); }}>View project<Icon name="arrow" /></button>}{notice.status && filter !== "all" && filter !== notice.status && <button className={styles.textAction} onClick={() => { setFilter(notice.status!); setSearch(""); setDueFilter("all"); }}>View {labels[notice.status]}<Icon name="arrow" /></button>}<IconButton icon="close" className={styles.textAction} label="Dismiss task notice" onClick={() => setNotice(undefined)} /></div>}
-          {!tasksReady && <p role="status" className={styles.draftStatus}>Loading tasks…</p>}
+          {!tasksReady && <p role="status" className={styles.draftStatus}><Icon name="loader" className="is-spinning" />Loading tasks…</p>}
           <TaskList key={`${selected}:${filter}:${resumed?.kind === "editor" ? resumed.id : ""}`} resumeDraft={resumed?.kind === "editor" ? resumed : undefined} readOnly={project.state === "archived"} emptyLabel={search || dueFilter !== "all" ? taskPage.more ? "No matches yet" : "No matching tasks" : filter === "all" ? "No tasks yet" : `No ${labels[filter].toLowerCase()} tasks`} tasks={taskPage.ready ? taskPage.items : taskPage.items.filter(task => task.projectId === selected && (filter === "all" || task.status === filter))} onChanged={taskChanged} />
           {tasksReady && taskPage.more && <button className={`secondary ${styles.loadMore}`} disabled={taskPage.loadingMore} onClick={() => void taskPage.moreTasks()}>More tasks</button>}
           {project.state !== "archived" && <SavedDrafts key={selected} projectId={selected} onResume={value => { setResumed(value); if (value.kind === "editor") { setFilter("all"); setSearch(""); setDueFilter("all"); } }} />}
