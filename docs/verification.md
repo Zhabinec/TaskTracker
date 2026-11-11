@@ -323,3 +323,22 @@ CI обновлён: optional cloud stack проверяется отдельн�
   Telegram controls и server-side Telegram authentication не добавлены. Фактический
   запуск приложения в Telegram-клиенте и повторный публичный smoke новой сборки
   ещё требуют соответствующей проверки. WebKit startup finding остаётся открытым.
+
+### Публикация Telegram-версии
+
+- SHA `5e38bd9` прошёл backend/frontend/database/containers CI:
+  https://github.com/Zhabinec/TaskTracker/actions/runs/42925646820.
+- Автоматический deploy не появился после завершения CI. Через Render Dashboard
+  выполнен Deploy latest commit; подтверждены source `5e38bd9` и Live deploy
+  `dep-dbpquq0u01pc738uic70` (39.4s). Причина отсутствия auto-trigger не установлена.
+- Публичный Test-Deployment.ps1 прошёл; build
+  `7c0f4d23-2710-4d12-9596-85128dbe55f6`. Подтверждены HTTPS, health, shell assets,
+  manifest, no-store и новая ограниченная frame-ancestors политика.
+- Публичный Telegram policy E2E: **6 passed (27.5s)**, Chromium/Firefox/WebKit,
+  retries=0. Пробник проверяет реальные заголовки; он не является авторизованным
+  Telegram-клиентом. Отдельный свежий Chromium открыл приложение, дождался Offline
+  ready и сохранил контрольный screenshot. В личное приложение Telegram доступ
+  не предоставлен; повторных попыток обращения к нему не выполнялось.
+- Кнопка Open app подтверждена Bot API. Profile Main Mini App ещё не включён.
+  Реальный Telegram launch/close/reopen и фактический Render rollback остаются
+  отдельной приёмкой; прежняя нестабильность startup WebKit не объявлена исправленной.

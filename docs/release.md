@@ -28,8 +28,8 @@ To run only a browser matrix against the existing stack:
 ```
 
 Native `npm run test:e2e` remains available after installing Playwright browsers.
-CI installs all three browser engines. Release SHA `83052ef` passed all four
-[GitHub jobs](https://github.com/Zhabinec/TaskTracker/actions/runs/42918195830).
+CI installs all three browser engines. Release SHA `5e38bd9` passed all four
+[GitHub jobs](https://github.com/Zhabinec/TaskTracker/actions/runs/42925646820).
 The current public deployment is recorded in [the Render runbook](render-release.md).
 
 ## Install on a phone with HTTPS

@@ -64,8 +64,10 @@ create additional copies; this is not a merge or automatic synchronization.
 2. Rehearse an actual Render deployment update/rollback with existing data and
    accept Telegram launch and local data retention. Public TLS is verified at
    [the acceptance deployment](https://tasktracker-7wc0.onrender.com); live SHA
-   `83052ef` has successful backend/frontend/database/containers
-   [CI checks](https://github.com/Zhabinec/TaskTracker/actions/runs/42918195830).
+   `5e38bd9` has successful backend/frontend/database/containers
+   [CI checks](https://github.com/Zhabinec/TaskTracker/actions/runs/42925646820).
+   The release was deployed manually after CI; automatic trigger delivery still
+   needs verification.
 3. Investigate intermittent WebKit first-start Offline ready timeouts observed
    during concurrent public-origin browser runs. Isolated passing checks do not
    establish that the initial failures are fixed. Select paid Render compute

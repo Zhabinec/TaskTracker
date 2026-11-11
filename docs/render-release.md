@@ -9,13 +9,14 @@ touch device data.
 
 - App: [tasktracker-7wc0.onrender.com](https://tasktracker-7wc0.onrender.com).
 - Service: `srv-dbpq83gae00c73capcng`, Blueprint `exs-dbpq7r56e07s73b5b5jg`.
-- Live deploy: `dep-dbpq83oae00c73capdt0`, Git commit `83052ef`.
-- Shell build: `1e8b5913-12c6-4c15-ae38-6535aa08a8e1`.
-- [Release CI](https://github.com/Zhabinec/TaskTracker/actions/runs/42918195830):
+- Live deploy: `dep-dbpquq0u01pc738uic70`, Git commit `5e38bd9`.
+- Shell build: `7c0f4d23-2710-4d12-9596-85128dbe55f6`.
+- [Release CI](https://github.com/Zhabinec/TaskTracker/actions/runs/42925646820):
   backend, frontend, database and containers all succeeded.
 
 On November 11, public HTTPS smoke checks passed and the app displayed Offline
-ready in the in-app browser. The owner subsequently replaced physical Android PWA
+ready in a fresh production browser. Telegram frame-policy tests also passed
+against this public deployment in Chromium, Firefox and WebKit. The owner replaced physical Android PWA
 installation with [Telegram Mini App acceptance](telegram.md). Actual Telegram
 launch and a Render deployment update/rollback remain pending. See [verification](verification.md) for browser
 results, including WebKit startup timeouts during concurrent runs.
@@ -44,6 +45,11 @@ checks. Initial creation/manual deploys must separately target a successful CI
 commit. A public Git URL without a connected Git provider does not provide this
 automatic CI integration. Docker build/start commands come from the Dockerfile;
 do not add `npm start`, Caddy, Compose or a database to the Render service.
+
+The November 11 Telegram release did not start automatically after its successful
+CI run. It was manually deployed from master after all checks passed; Dashboard
+confirmed Live for `5e38bd9`. The cause of the missing automatic trigger remains
+unverified. Check this integration before relying on unattended deployment.
 
 `RENDER_EXTERNAL_URL` supplies the default trusted origin for the optional Identity
 boundary. Set `APP_ORIGIN=https://your-custom-host` explicitly if a custom domain is
