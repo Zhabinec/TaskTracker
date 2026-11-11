@@ -25,6 +25,18 @@ results, including WebKit startup timeouts during concurrent runs.
 
 ## Provision
 
+The Blueprint also provisions `tasktracker-static`, a free CDN deployment of
+the same local interface. It serves the app's HTML and loading indicator directly,
+without waiting for a container. Build it locally with
+`npm --prefix frontend run build:static`. The publish directory is
+`frontend/.cache/static-site/out`.
+
+The static site receives a new origin. Existing IndexedDB data remains on the
+original address. Keep the original bot URL available until the new site passes
+Telegram checks and users have exported/imported their projects and tasks.
+Backup files exclude drafts, so finish or recover drafts on the original site
+before switching. Use the actual static site URL shown in Render.
+
 1. Connect Render to `Zhabinec/TaskTracker` through its GitHub integration. Inspect
    existing services first; update an existing TaskTracker service rather than
    creating another origin and separating installed users from their data.

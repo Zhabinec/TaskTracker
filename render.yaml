@@ -15,3 +15,52 @@ services:
         value: production
       - key: NEXT_TELEMETRY_DISABLED
         value: "1"
+  - type: web
+    name: tasktracker-static
+    runtime: static
+    branch: master
+    buildCommand: npm --prefix frontend ci --include=dev && npm --prefix frontend run build:static
+    staticPublishPath: ./frontend/.cache/static-site/out
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_VERSION
+        value: "24.19.0"
+      - key: SKIP_INSTALL_DEPS
+        value: "true"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+    routes:
+      - type: rewrite
+        source: /login
+        destination: /login.html
+      - type: rewrite
+        source: /projects
+        destination: /projects.html
+      - type: rewrite
+        source: /register
+        destination: /register.html
+      - type: rewrite
+        source: /health/ready
+        destination: /health/ready.json
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "frame-ancestors https://web.telegram.org"
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), geolocation=()"
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      - path: /build-info.json
+        name: Cache-Control
+        value: no-store
+      - path: /health/ready
+        name: Cache-Control
+        value: no-store

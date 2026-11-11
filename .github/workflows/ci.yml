@@ -82,6 +82,7 @@ jobs:
       - run: npm test
       - run: node --test ../scripts/tests/telegram-menu.test.mjs
       - run: npm run build
+      - run: npm run build:static
       - run: npm audit --omit=dev --audit-level=high
   containers:
     runs-on: ubuntu-latest

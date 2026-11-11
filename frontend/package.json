@@ -9,6 +9,7 @@
     "dev": "next dev --hostname 127.0.0.1",
     "predev": "node scripts/prepare-pwa.mjs",
     "build": "next build",
+    "build:static": "node scripts/build-static.mjs",
     "prebuild": "node scripts/prepare-pwa.mjs",
     "start": "next start --hostname 0.0.0.0",
     "lint": "eslint . --max-warnings=0",

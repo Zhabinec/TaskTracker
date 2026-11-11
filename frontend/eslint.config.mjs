@@ -10,5 +10,5 @@ export default defineConfig([
   next.configs["core-web-vitals"],
   reactHooks.configs.flat.recommended,
   { files: ["public/sw.js"], languageOptions: { globals: { self: "readonly", caches: "readonly", fetch: "readonly", URL: "readonly" } } },
-  globalIgnores([".next/**", "coverage/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", ".cache/**", "coverage/**", "next-env.d.ts"]),
 ]);
