@@ -1,4 +1,4 @@
-# Telegram acceptance environment. Select paid compute before public production.
+# TaskTracker and Telegram Mini App on Render Free.
 # Connect this Blueprint to the GitHub repo so checksPass can observe CI.
 services:
   - type: web

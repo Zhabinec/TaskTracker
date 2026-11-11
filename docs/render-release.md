@@ -31,10 +31,9 @@ results, including WebKit startup timeouts during concurrent runs.
 2. Create a Blueprint from `render.yaml` on `master`. It uses the existing pinned
    Node 24 Dockerfile with context `frontend`, starts its standalone server, and
    checks `/health/ready`. Render supplies `PORT` and terminates HTTPS.
-3. The checked-in `free` plan is for client acceptance only. Free services sleep
-   after 15 idle minutes and may need about a minute to start. Before public
-   production, approve/select paid compute and update `plan` in the Blueprint
-   to match. Never silently change an existing paid service to Free.
+3. Keep the checked-in `free` plan. Free services sleep after 15 idle minutes
+   and may need about a minute to start. During a cold start, Render controls
+   the initial loading screen until it can serve the application.
 4. Wait for Live and record the actual HTTPS URL shown by Render; the service name
    does not guarantee an available `tasktracker.onrender.com` hostname.
 5. Run `./scripts/Test-Deployment.ps1 -Origin https://ACTUAL-HOST.onrender.com`.

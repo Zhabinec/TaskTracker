@@ -70,8 +70,9 @@ create additional copies; this is not a merge or automatic synchronization.
 3. Investigate intermittent WebKit first-start Offline ready timeouts observed
    during concurrent public-origin browser runs. The subsequent full sequential
    public WebKit run passed 28/28. The concurrent failure remains unexplained.
-   Select paid Render compute
-   before public production; the current Free service is for acceptance.
+
+Render Free is the agreed hosting plan. Its cold-start behavior is documented
+in [the Render runbook](render-release.md).
 
 The candidate can be tested locally now. Public 1.0 requires these environmental
 checks; cloud Workspace/sync remains a separately scoped future release.
