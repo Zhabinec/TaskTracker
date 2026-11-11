@@ -1,4 +1,4 @@
-# Android acceptance environment. Select paid compute before public production.
+# Telegram acceptance environment. Select paid compute before public production.
 # Connect this Blueprint to the GitHub repo so checksPass can observe CI.
 services:
   - type: web

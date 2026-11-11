@@ -48,4 +48,4 @@ foreach ($taskPath in @('/icon-192.png', '/icon-512.png', '/fonts/jakarta-latin.
     if ($taskResponse.RawContentLength -le 0) { throw "Empty PWA asset: $taskPath" }
 }
 [pscustomobject]@{ Origin = $taskBase; Build = $taskBuild; HTTPS = ($Origin.Scheme -eq 'https'); HTTPChecks = 'passed' }
-Write-Host 'Browser offline, update/rollback and physical Android acceptance remain separate checks.'
+Write-Host 'Browser offline, update/rollback and Telegram client acceptance remain separate checks.'

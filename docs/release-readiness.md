@@ -57,18 +57,19 @@ create additional copies; this is not a merge or automatic synchronization.
 
 ## Required acceptance outside this checkout
 
-1. Verify close/reopen, editing, backup transfer and retention in the actual
+1. Verify remaining editing and backup transfer scenarios in the actual
    Telegram Mini App client. The owner removed physical Android PWA installation
    from this release gate and selected [@TaskTrackerPetBot](telegram.md). Phone
-   launch was confirmed by the owner on November 11; the remaining lifecycle,
-   backup and retention checks still need their own acceptance results.
-2. Rehearse an actual Render deployment update/rollback with existing data and
-   accept local data retention in Telegram. Public TLS is verified at
+   launch and close/reopen task/draft retention were confirmed by the owner on
+   November 11. Backup transfer still needs its own client acceptance result.
+2. Actual Render A→B→A update/rollback passed with retained tasks, IDs, counters,
+   two creation drafts, identical backup data and offline reload. Public TLS is verified at
    [the acceptance deployment](https://tasktracker-7wc0.onrender.com); live SHA
    `5e38bd9` has successful backend/frontend/database/containers
    [CI checks](https://github.com/Zhabinec/TaskTracker/actions/runs/42925646820).
-   The release was deployed manually after CI; automatic trigger delivery still
-   needs verification.
+   Automatic delivery remains pending: Render's Git provider is not connected.
+   After CI Checks Pass was restored after the rehearsal; connect GitHub and verify
+   the next checked commit deploys without manual action.
 3. Investigate intermittent WebKit first-start Offline ready timeouts observed
    during concurrent public-origin browser runs. Isolated passing checks do not
    establish that the initial failures are fixed. Select paid Render compute

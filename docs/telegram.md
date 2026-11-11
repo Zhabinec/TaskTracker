@@ -38,7 +38,8 @@ The configuration script reports `mainMiniAppConfigured` from Telegram's getMe.
 The default Open app menu for `@TaskTrackerPetBot` was configured and read back on
 November 11, 2026. Telegram reports `has_main_web_app=false`: the separate profile
 Launch app button is not enabled. On November 11, the owner confirmed that the
-Mini App opened and worked from a phone. Client/OS versions were not recorded.
+Mini App opened and worked from a phone, and then confirmed task/draft retention
+after reopening Telegram. Client/OS versions were not recorded.
 
 Menu launch is separate from the profile Main Mini App setting. Bot API does not
 configure that profile setting through setChatMenuButton.
@@ -47,8 +48,8 @@ configure that profile setting through setChatMenuButton.
 
 - Physical Android PWA installation is removed from the current release gate at
   the owner's request. Browser offline coverage remains; actual Telegram WebView
-  launch was confirmed by the owner on a phone. Close/reopen, keyboard, dialogs
-  and backup transfer still need their own acceptance results.
+  launch and close/reopen retention were confirmed by the owner on a phone.
+  Keyboard, dialogs and backup transfer still need their own acceptance results.
 - Open the bot's menu in Telegram, enter the app, create a project and tasks, then
   close/reopen it. Verify saved tasks and drafts. Test editor Save/Cancel, batch
   actions and an exported/imported backup in the Telegram client being used.

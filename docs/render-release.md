@@ -1,4 +1,4 @@
-# Render deployment and Android acceptance
+# Render deployment and client acceptance
 
 The local release candidate runs as one Docker web service. Projects, tasks and
 drafts stay in browser IndexedDB. Identity/PostgreSQL and the future Workspace
@@ -9,7 +9,7 @@ touch device data.
 
 - App: [tasktracker-7wc0.onrender.com](https://tasktracker-7wc0.onrender.com).
 - Service: `srv-dbpq83gae00c73capcng`, Blueprint `exs-dbpq7r56e07s73b5b5jg`.
-- Live deploy: `dep-dbpquq0u01pc738uic70`, Git commit `5e38bd9`.
+- Live deploy after rollback rehearsal: `dep-dbprc69srm7s738kcfn0`, Git commit `5e38bd9`.
 - Shell build: `7c0f4d23-2710-4d12-9596-85128dbe55f6`.
 - [Release CI](https://github.com/Zhabinec/TaskTracker/actions/runs/42925646820):
   backend, frontend, database and containers all succeeded.
@@ -18,8 +18,9 @@ On November 11, public HTTPS smoke checks passed and the app displayed Offline
 ready in a fresh production browser. Telegram frame-policy tests also passed
 against this public deployment in Chromium, Firefox and WebKit. The owner replaced physical Android PWA
 installation with [Telegram Mini App acceptance](telegram.md). Actual Telegram
-launch was confirmed by the owner on a phone on November 11. Telegram retention
-and a Render deployment update/rollback remain pending. See [verification](verification.md) for browser
+launch and close/reopen retention were confirmed by the owner on a phone on
+November 11. A real A→B→A deployment rehearsal also passed with isolated browser
+data, backups, task IDs, drafts and offline reload. See [verification](verification.md) for browser
 results, including WebKit startup timeouts during concurrent runs.
 
 ## Provision
@@ -30,7 +31,7 @@ results, including WebKit startup timeouts during concurrent runs.
 2. Create a Blueprint from `render.yaml` on `master`. It uses the existing pinned
    Node 24 Dockerfile with context `frontend`, starts its standalone server, and
    checks `/health/ready`. Render supplies `PORT` and terminates HTTPS.
-3. The checked-in `free` plan is for Android acceptance only. Free services sleep
+3. The checked-in `free` plan is for client acceptance only. Free services sleep
    after 15 idle minutes and may need about a minute to start. Before public
    production, approve/select paid compute and update `plan` in the Blueprint
    to match. Never silently change an existing paid service to Free.
@@ -48,9 +49,10 @@ automatic CI integration. Docker build/start commands come from the Dockerfile;
 do not add `npm start`, Caddy, Compose or a database to the Render service.
 
 The November 11 Telegram release did not start automatically after its successful
-CI run. It was manually deployed from master after all checks passed; Dashboard
-confirmed Live for `5e38bd9`. The cause of the missing automatic trigger remains
-unverified. Check this integration before relying on unattended deployment.
+CI run. Dashboard later showed After CI Checks Pass selected but no connected
+Git provider: Update Source → Git Provider displayed Connect Git provider. Connect
+GitHub and select this repository before relying on unattended deployments. The
+After CI Checks Pass setting was restored after the rollback rehearsal.
 
 `RENDER_EXTERNAL_URL` supplies the default trusted origin for the optional Identity
 boundary. Set `APP_ORIGIN=https://your-custom-host` explicitly if a custom domain is
@@ -92,6 +94,27 @@ Transfer real tasks with export/import; unfinished drafts are not in the backup.
 There is no automatic multi-device synchronization.
 
 ## Update and rollback rehearsal
+
+The real public-origin A→B→A rehearsal passed on November 11. To repeat it with
+one isolated Chromium context, start the following from the repository root in
+the pinned Playwright container used by Test-Browsers.ps1 (mount frontend at /work):
+
+```text
+node scripts/rehearse-release.mjs
+```
+
+The script waits for operator-triggered deployments and must not run unattended
+in CI. REHEARSAL_ORIGIN selects an exact HTTPS origin; REHEARSAL_EXPECTED_BUILD
+optionally guards the initial build. It logs A_prepared before a deployment,
+B_verified before rollback, and complete only after the original A build returns.
+The artifacts in frontend/test-results/render-rehearsal include backups, screenshots
+and result.json. Each deployment wait is bounded to about ten minutes.
+
+The script uses the real Update control after reopening/reloading the page; it
+never injects a worker build ID. It compares project/task records and IDs, ignoring
+only the backup export timestamp, checks both creation drafts and reloads offline.
+An identical cached Docker rebuild may retain its build ID and does not establish
+an update. A clean rebuild is needed to exercise a distinct shell build.
 
 Use an acceptance workspace on the same stable Render URL and export a backup
 first. Retain a successful deployment that understands IndexedDB v3.

@@ -350,3 +350,37 @@ CI обновлён: optional cloud stack проверяется отдельн�
 после close/reopen, offline cold start, backup transfer и обновления/отката этим
 сообщением не подтверждались; версии ОС/Telegram не записаны. Установка Android
 PWA остаётся вне обязательной приёмки по предыдущему решению владельца.
+
+### Реальное обновление и откат на Render
+
+- Владелец затем подтвердил наличие задачи/черновика после повторного открытия
+  Telegram. Этот close/reopen сценарий принят; перенос backup в реальном клиенте
+  остаётся отдельной проверкой.
+- Новый operator-only scripts/rehearse-release.mjs запущен против публичного HTTPS
+  в одном изолированном Chromium context. Подготовлены один проект, одна Done-задача,
+  черновик создания задачи и черновик создания проекта; экспортирован baseline backup.
+  После каждой смены сборки использованы реальный reload/reopen и кнопка Update,
+  без подмены service worker или build metadata.
+- A: `7c0f4d23-2710-4d12-9596-85128dbe55f6`, runtime SHA `5e38bd9`.
+  Кешированный повтор этого SHA сохранил build ID и не был засчитан как обновление.
+  Затем выполнен Clear build cache & deploy для `929b4f0`: его frontend tree
+  `0942ff6adaa4712c587281856f9db978ece028b7` идентичен проверенному `5e38bd9`;
+  между коммитами изменялись только документы.
+- B: `d24a9c24-508a-49ca-90f0-c292075e5b4f`, deploy
+  `dep-dbprasifngtc7388bc8g`. В 03:25 МСК подтверждены активный B worker, сохранённые
+  task/project IDs, Done и агрегаты, оба черновика, идентичные backup records и
+  offline reload. Исключён только ожидаемо новый exportedAt в каждом backup.
+- Выполнен настоящий Rollback к артефакту A из `dep-dbpraa8n74is738qk640`.
+  Итоговый Live deploy: `dep-dbprc69srm7s738kcfn0`, SHA `5e38bd9`. В 03:26 МСК
+  тот же browser context принял Update обратно на A и повторил все проверки:
+  backupUnchanged=true, draftsRetained=true, offlineReload=true, exit code 0.
+  Публичный Test-Deployment.ps1 с ExpectedBuild A также прошёл.
+- Локальный result.json и три screenshot находятся в
+  frontend/test-results/render-rehearsal; тестовые контексты и контейнер закрыты.
+  Пользовательские browser/Telegram хранилища, backend и database volumes не менялись.
+  Lint и syntax check нового скрипта прошли.
+- После rollback восстановлен After CI Checks Pass. До репетиции этот режим уже
+  был выбран; Update Source → Git Provider при этом показывал Connect Git provider.
+  Отсутствие подключённого провайдера объясняет ручные деплои публичного Git URL.
+  Владелец прошёл GitHub-подключение; привязка сервиса и end-to-end автоматический
+  запуск после следующего CI ещё проверяются.
