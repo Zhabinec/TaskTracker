@@ -18,7 +18,8 @@ On November 11, public HTTPS smoke checks passed and the app displayed Offline
 ready in a fresh production browser. Telegram frame-policy tests also passed
 against this public deployment in Chromium, Firefox and WebKit. The owner replaced physical Android PWA
 installation with [Telegram Mini App acceptance](telegram.md). Actual Telegram
-launch and a Render deployment update/rollback remain pending. See [verification](verification.md) for browser
+launch was confirmed by the owner on a phone on November 11. Telegram retention
+and a Render deployment update/rollback remain pending. See [verification](verification.md) for browser
 results, including WebKit startup timeouts during concurrent runs.
 
 ## Provision

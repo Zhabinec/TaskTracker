@@ -1,6 +1,6 @@
 # Local release: use cases and acceptance
 
-The current build is local 1.0.0-rc.1, pending physical-device and deployment acceptance. The first release
+The current build is local 1.0.0-rc.1, pending the remaining client and deployment acceptance. The first release
 is an offline single-device workspace. Cloud identity, Workspace service and sync
 have a separate release scope; a browser profile is never a cloud credential.
 
@@ -57,12 +57,13 @@ create additional copies; this is not a merge or automatic synchronization.
 
 ## Required acceptance outside this checkout
 
-1. Verify launch, close/reopen, editing, backup transfer and retention in the actual
+1. Verify close/reopen, editing, backup transfer and retention in the actual
    Telegram Mini App client. The owner removed physical Android PWA installation
-   from this release gate and selected [@TaskTrackerPetBot](telegram.md). This does
-   not mean Telegram WebView behavior has already been verified.
+   from this release gate and selected [@TaskTrackerPetBot](telegram.md). Phone
+   launch was confirmed by the owner on November 11; the remaining lifecycle,
+   backup and retention checks still need their own acceptance results.
 2. Rehearse an actual Render deployment update/rollback with existing data and
-   accept Telegram launch and local data retention. Public TLS is verified at
+   accept local data retention in Telegram. Public TLS is verified at
    [the acceptance deployment](https://tasktracker-7wc0.onrender.com); live SHA
    `5e38bd9` has successful backend/frontend/database/containers
    [CI checks](https://github.com/Zhabinec/TaskTracker/actions/runs/42925646820).
